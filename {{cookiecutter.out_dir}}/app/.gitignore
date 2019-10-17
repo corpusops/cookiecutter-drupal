@@ -1,0 +1,32 @@
+.buildpath
+.project
+.settings
+coverage
+
+# Public files upload directory
+/var/public
+# Private files & othe rvar stuff
+/var/private
+/var/nginxwebroot
+/var/tmp
+/var/cache
+
+# Stuff in web root
+www/web.config
+www/.pot
+# Ignore sourcemaps
+/www/profiles/*/themes/*/dist/maps
+# Uncomment following line if modifying Drupal's .htaccess ?
+# but really, you should not, either work on Nginx config files or real Apache config files
+#!/www/.htaccess
+
+/.env
+/vendor/
+
+.phpunit
+/phpunit.xml
+
+node_modules
+npm-debug.log
+yarn-error.log
+

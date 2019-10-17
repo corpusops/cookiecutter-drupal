@@ -1,0 +1,4 @@
+---
+cops_{{cookiecutter.app_type}}_deploy_env: staging
+cops_{{cookiecutter.app_type}}_hostname:  "{{cookiecutter.staging_domain}}"
+cops_{{cookiecutter.app_type}}_alternate_hostnames: {{cookiecutter.staging_alternate_domains.split(',')}}

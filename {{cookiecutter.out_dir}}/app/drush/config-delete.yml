@@ -1,0 +1,6 @@
+delete:
+  - block.block.foobar
+  - user.role.foobar
+
+# for example if you remove dblog module, then delete this yml file
+#  - dblog.settings

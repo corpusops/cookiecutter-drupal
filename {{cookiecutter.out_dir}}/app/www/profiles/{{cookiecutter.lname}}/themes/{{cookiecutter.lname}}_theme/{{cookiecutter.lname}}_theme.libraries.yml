@@ -1,0 +1,30 @@
+lato_font:
+  license:
+    name: Open Font License
+    url: http://scripts.sil.org/cms/scripts/page.php?site_id=nrsi&id=OFL_web
+  css:
+    theme:
+      //fonts.googleapis.com/css?family=Lato: { type: external }
+
+global:
+  css:
+    theme:
+      dist/css/styles.css: {}
+      dist/css/print.css: { media: print }
+  js:
+    bootstrap/dist/js/bootstrap.min.js: {}
+    dist/js/script.min.js: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.once
+    - core/drupal
+    - core/drupalSettings
+
+lightbox:
+  css:
+    theme:
+      lightbox2/dist/css/lightbox.min.css: {}
+  js:
+    lightbox2/dist/js/lightbox.min.js: {}
+  dependencies:
+    - core/jquery

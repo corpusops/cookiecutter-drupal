@@ -1,0 +1,4 @@
+---
+cops_{{cookiecutter.app_type}}_deploy_env: qa
+cops_{{cookiecutter.app_type}}_hostname:  "{{cookiecutter.qa_domain}}"
+cops_{{cookiecutter.app_type}}_alternate_hostnames: {{cookiecutter.qa_alternate_domains.split(',')}}

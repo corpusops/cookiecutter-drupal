@@ -1,0 +1,47 @@
+<?php
+/**
+ * @file
+ * Install, update and uninstall functions of the {{cookiecutter.name}} profile.
+ */
+
+use Drupal\Core\Config\FileStorage;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\user\Entity\User;
+
+/**
+ * Implements hook_schema().
+ */
+function {{cookiecutter.lname}}_schema() {
+  $schema = [];
+
+  return $schema;
+}
+
+/**
+ * Implements hook_install().
+ *
+ * Perform actions to set up the site for this profile.
+ *
+ * @see system_install()
+ */
+function {{cookiecutter.lname}}_install() {
+
+  // Assigns the "administrator" role to user 1.
+  $user = User::load(1);
+  $user->roles[] = 'administrator';
+  $user->save();
+}
+
+/**
+ * Installs (or rewrite) the configuration present in the specified file.
+ *
+ * The config file must be located in the directory of the non-synchronized
+ * configuration (lib/config/install from the project root).
+ *
+ * @param $name
+ *   Name of the config file (without the .yml extension)
+ */
+function {{cookiecutter.lname}}_install_config($name) {
+  $storage = new FileStorage(DRUPAL_ROOT . '/../lib/config/install');
+  \Drupal::service('config.storage')->write($name, $storage->read($name));
+}

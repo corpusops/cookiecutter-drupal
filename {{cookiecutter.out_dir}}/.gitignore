@@ -1,0 +1,72 @@
+# PHP ?
+
+# Python
+*.pyc
+__pycache__
+*.egg-info
+*.mo
+
+# Docker local settings
+/.env
+/docker.env
+/netrc
+/docker-compose.override.yml
+/logs/
+
+# IDE settings
+.buildpath
+.settings
+.project
+.vscode
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea
+.~lock*
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+
+# compiled output
+/docs/_build
+/dist
+/tmp
+/angular/**/*.js
+/angular/**/*.json
+!/angular/**/tsconfig.*.json
+/angular/**/*.map
+
+# dependencies
+node_modules
+
+# Virtualenv
+/venv/
+/.tox
+
+# corpusops & ansible
+*.retry
+/.ansible/scripts/ansible_deploy_env
+/local/
+!/local/regen.sh
+
+# misc
+/.sass-cache
+/connect.lock
+/coverage/*
+/libpeerconnection.log
+npm-debug.log
+testem.log
+yarn-error.log
+/typings
+*~
+
+# e2e
+/e2e/cypress/screenshots
+/e2e/cypress/videos
+/e2e/cypress.env
+
+#System Files
+.DS_Store

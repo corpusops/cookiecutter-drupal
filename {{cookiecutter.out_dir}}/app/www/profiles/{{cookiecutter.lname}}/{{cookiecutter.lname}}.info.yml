@@ -1,0 +1,39 @@
+name: {{cookiecutter.name}}
+type: profile
+description: 'Install of the {{cookiecutter.name}} website.'
+core: '8.x'
+
+distribution:
+  name: {{cookiecutter.name}}
+
+dependencies:
+  - big_pipe
+  - block
+  - block_content
+  - ckeditor
+  - config
+  - content_moderation
+  - contextual
+  - datetime
+  - dblog
+  - dynamic_page_cache
+  - editor
+  - field_ui
+  - file
+  - image
+  - menu_link_content
+  - menu_ui
+  - node
+  - options
+  - page_cache
+  - path
+  - taxonomy
+  - toolbar
+  - views
+  - views_ui
+  - workflows
+
+themes:
+  - {{cookiecutter.lname}}_theme
+  - bartik
+  - seven

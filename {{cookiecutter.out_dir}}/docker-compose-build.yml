@@ -1,0 +1,20 @@
+version: '3.7'
+x-images:
+  env: &env {env_file: [.env, docker.env]}
+  {{cookiecutter.app_type}}: &{{cookiecutter.app_type}}
+    build:
+      context: "."
+      args:
+        PHP_VER: "${DRUPAL_PHP_VER:-{{cookiecutter.php_ver}}}"
+services:
+  {%- if not cookiecutter.remove_cron %}
+  cron: {<<: [ *{{cookiecutter.app_type}} ]}
+  {%-endif%}
+  {{cookiecutter.app_type}}: {<<: [ *{{cookiecutter.app_type}} ]}
+  cypress:
+    <<: [ *env ]
+    image: cypress
+    build: ./e2e
+    volumes:
+      - ./e2e/cypress:/app/cypress
+      - ./e2e/cypress.json:/app/cypress.json

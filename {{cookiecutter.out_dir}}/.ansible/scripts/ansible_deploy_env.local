@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# edit and adapt to your project needs
+export A_GIT_SERVER="{{ cookiecutter.git_url}}"
+export A_GIT_NAMESPACE="{{ cookiecutter.git_ns }}"
+export A_GIT_PROJECT="{{ cookiecutter.git_project }}"
+export A_GIT_URL=${A_GIT_SERVER}/$A_GIT_NAMESPACE/$A_GIT_PROJECT

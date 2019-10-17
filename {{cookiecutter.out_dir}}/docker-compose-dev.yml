@@ -1,0 +1,78 @@
+version: '3.7'
+x-images:
+  bypass: &bypass
+    command: 'sh -c "while true;do echo notstarted;sleep 65000;done"'
+    entrypoint: 'sh -c "while true;do echo notstarted;sleep 65000;done"'
+  {{cookiecutter.app_type}}: &{{cookiecutter.app_type}}
+    environment: &{{cookiecutter.app_type}}_env
+      APP_ENV: "dev"
+      APP_SECRET: "42"
+      PHP_DISPLAY_ERROR: 1
+      NO_MIGRATE: "1"
+      NO_COLLECT_STATIC: "1"
+      NO_CACHE_CLEAR: "1"
+      NO_COMPOSER: "1"
+    volumes: &{{cookiecutter.app_type}}_volumes
+      #- ./local/drupal-deploy-common/sys/sudoer:/etc/sudoers.d/$APP_TYPE
+      - ./sys/sbin:/code/init/sbin/
+      - ./sys/sbin:/code/sys/sbin/
+      - ./sys/sbin:/code/sbin/
+      {%-if cookiecutter.use_submodule_for_deploy_code %}
+      - ./local/drupal-deploy-common/sys/init.sh:/code/sys/init.sh
+      - ./local/drupal-deploy-common/sys/init.sh:/code/init/init.sh
+      - ./local/drupal-deploy-common/sys/etc/supervisor.d:/code/sys/etc/supervisor.d
+      - ./local/drupal-deploy-common/sys/etc/php-fpm.d:/code/sys/etc/php-fpm.d
+      - ./local/drupal-deploy-common:/code/local/drupal-deploy-common
+      {%- else%}
+      - ./sys/init.sh:/code/sys/init.sh
+      - ./sys/init.sh:/code/init/init.sh
+      - ./sys/etc/supervisor.d:/code/sys/etc/supervisor.d
+      - ./sys/etc/php-fpm.d:/code/sys/etc/php-fpm.d
+      - ./:/code/local/drupal-deploy-common
+      {%- endif%}
+      - ./sys/etc/supervisor.d:/code/etc/supervisor.d
+      - ./local:/code/local
+      - ./app:{{cookiecutter.app_path}}
+      # remount public/private (named volumes on prod, local remount on dev)
+      # on /code/app/public/files and /code/app/private
+      - ./app/var/public:{{cookiecutter.public_files_path}}
+      - ./app/var/private:{{cookiecutter.private_path}}
+      - ./app/var/cache:{{cookiecutter.cache_path}}
+services:
+  db:
+    ports:
+    - "{{ cookiecutter.local_direct_db_port }}:5432"
+  nginx:
+    environment:
+      NO_SSL: "{%if not cookiecutter.ssl_in_dev%}1{%endif%}"
+      NO_FORCE_SSL: "{%if not cookiecutter.ssl_in_dev%}1{%endif%}"
+    ports:
+    - "{{cookiecutter.local_http_port}}:80"
+    volumes:
+      # remount public/private (named volumes on prod, local remount on dev)
+      # on /code/app/public/files and /code/app/private
+      - ./app/public/:/code/app/public
+      - ./app/public/files:/code/app/public/files:ro
+      - ./app/private:/code/app/private:ro
+  backup: {<<: [ *bypass ]}
+  {%- if not cookiecutter.remove_cron %}
+  cron:
+    build:
+      context: "."
+      args:
+        PHP_VER: "${DRUPAL_PHP_VER:-7.2}"
+    <<: [ *bypass ]
+    <<: [ *{{cookiecutter.app_type}} ]
+  {% endif %}
+  {{cookiecutter.app_type}}:
+    build:
+      context: "."
+      args:
+        PHP_VER: "${DRUPAL_PHP_VER:-7.2}"
+    <<: [ *{{cookiecutter.app_type}} ]
+    environment:
+      <<: [ *{{cookiecutter.app_type}}_env ]
+      IMAGE_MODE: phpfpm
+      PHP_XDEBUG_REMOTE: 1
+      PHP_XDEBUG_IP: host.docker.internal
+      PHP_XDEBUG_PORT: 9000

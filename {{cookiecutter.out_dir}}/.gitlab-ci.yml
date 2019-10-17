@@ -1,0 +1,452 @@
+image: corpusops/ubuntu:18.04
+{% set devhostdeploycomment = (not cookiecutter.dev_host) and '#  ' or '' %}
+stages:
+  - manual_jobs
+  - build
+  - tests
+  - flag_success
+  - release
+  - teardown
+  - deploy
+
+services: ["docker:dind"]
+
+variables:
+  # Keep this two next vars
+  GIT_SSL_CAPATH: /etc/ssl/certs/
+  GIT_SUBMODULE_STRATEGY: recursive
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_DRIVER: overlay2
+  #
+  TZ: Europe/Paris
+  DOCKER_REGISTRY: {{cookiecutter.docker_registry}}
+  # Configure your registry credentials in your CI secret variables
+  REGISTRY_USER: "{{cookiecutter.registry_user}}"
+  REGISTRY_PASSWORD: "{{cookiecutter.registry_password}}"
+  #
+  POSTGRES_USER: user
+  POSTGRES_DB: db
+  POSTGRES_PASSWORD: password
+  POSTGRES_HOST: db
+  # services launched during tests
+  DOCKER_SERVICES: "db{%if cookiecutter.with_redis %} redis{%endif%} mailcatcher"
+  # Those services underlying images will be built
+  DOCKER_BUILT_SERVICES: "{{cookiecutter.app_type}}{%if not cookiecutter.remove_cron%} cron{% endif %}"
+  # Main image
+  DOCKER_IMAGE: "{{cookiecutter.simple_docker_image}}"
+  # Image with unique identifier
+  CURRENT_DOCKER_IMAGE: "${DOCKER_REGISTRY}/${DOCKER_IMAGE}:build-${CI_PIPELINE_IID}"
+  # Released image (Targeting master)
+  LATEST_DOCKER_IMAGE: "${DOCKER_REGISTRY}/${DOCKER_IMAGE}:latest"
+  DEV_DOCKER_IMAGE: "${DOCKER_REGISTRY}/${DOCKER_IMAGE}:dev"
+  # Released image (Targeting a tag)
+  TAGGUED_DOCKER_IMAGE: "${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${CI_COMMIT_REF_NAME}"
+  # Allow to have many compose stacks aside.
+  D_COMPOSE: "docker-compose --verbose -f docker-compose.yml"
+  DEPLOY_PLAYBOOK: ".ansible/playbooks/app.yml"
+  IMAGES_TARBALL: "/cache/$CI_PROJECT_PATH_SLUG/docker-images/build-${CI_PIPELINE_IID}.gz"
+  REFERENCE_IMAGES_TARBALL: "/cache/$CI_PROJECT_PATH_SLUG/docker-images/${CI_COMMIT_REF_NAME}.gz"
+  REFERENCE_MASTER_IMAGES_TARBALL: "/cache/$CI_PROJECT_PATH_SLUG/docker-images/$MASTER_BRANCH.gz"
+  PRELOAD_TARBALLS: "1"
+  # To speed up all builds we may cache in Controls which branch is used to generate image cache tarball
+  CACHE_BUILD_FOR_BRANCH_REGEX: "^(master)$"
+  MASTER_BRANCH: master
+  CACHE_DAYS: "7"
+  # Path to CI success flag marker
+  SUCCESS_FLAG: "/cache/$CI_PROJECT_PATH_SLUG/ci_success_${CI_PIPELINE_IID}"
+{%-if cookiecutter.use_submodule_for_deploy_code%}
+  # {{cookiecutter.lname}} settings
+  SYMFONY_DEPLOY_VERSION: origin/stable
+{%endif%}
+
+# NEVER ever use gitlab-ci cache, its broken by design in most case of CI related tasks
+# when it comes to parrallel builds reusing local artefacts during jobs thorough the
+# pipeline. Indeed, as gitlab-ci saves cache to zipfiles, what would occcur
+# is that the result of a first be would be overwritte/corrupted by the result
+# of a parrallel, quickier, second build !!!
+# That's why, you 'd better have to use a shared volume in your runner configuration,
+# and we by default use /cache.
+# Be ware that you also must use a host volume (not a docker one !)
+# /!\: BIG_WARNING: this cache is common to all projets using this runner !
+# cache:
+#   key: "${CI_PROJECT_PATH_SLUG}"
+#   paths:
+#     - /var/cache/apt/
+#     - .ci_cache_$CI_PIPELINE_IID
+#     - .ci_cache
+
+# /!\  /!\  /!\
+# We use (ba)sh -c to enforce 3rd level of variables resolution,
+# Indeed, gitlab-ci would not interpret multiple nested variables, eg: $PRELOAD_IMAGES
+# /!\  /!\  /!\
+#
+before_script: &top_before_script
+{%-if cookiecutter.use_submodule_for_deploy_code%}
+- &pullsubmodules
+    cd {{cookiecutter.deploy_project_dir}} && git fetch origin && git reset --hard $SYMFONY_DEPLOY_VERSION && cd -
+{%endif%}
+- for i in
+    /cache/$CI_PROJECT_PATH_SLUG/docker-images
+    /cache/$CI_PROJECT_PATH_SLUG/apt
+  ;do if [ ! -e "$i" ];then mkdir -p "$i";fi;done
+- rm -rf /var/cache/apt
+- ln -s /cache/$CI_PROJECT_PATH_SLUG/apt /var/cache/apt
+- ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo ${TZ} > /etc/timezone
+- bash -ec "cat >/docker_login <<< 'set -e;echo \"$REGISTRY_PASSWORD\"
+                | docker login \"$DOCKER_REGISTRY\" --username=\"$REGISTRY_USER\" --password-stdin';
+                  touch /docker_login_success"
+# first registry login does not have to success, we only want it to be available on release
+- sh /docker_login || /bin/true
+# workaround as docker-compose doesn't support default shell variable substitution in .env
+- cat .env.dist | envsubst | sed
+  -re "s/^([^=]+_IMAGE_VERSION=.*)latest/\\1build-${CI_PIPELINE_IID}/g"
+  -e "s/^(CI_COMMIT_SHA=).*/\\1${CI_COMMIT_SHA}/g" > .env
+- envsubst < docker.env.dist > docker.env
+# As an aditionnal source of cache, we may restore the first found reference tarball
+# in this order
+# - Current pipeline tarball
+# - A REF NAME from which we cache the build
+# - The related master (latest) branch
+- find /cache/$CI_PROJECT_PATH_SLUG
+- bash -ec "if [ \"x${PRELOAD_TARBALLS}\" != \"x\" ];then for i in
+  \"\$IMAGES_TARBALL\"
+  \"\$REFERENCE_IMAGES_TARBALL\"
+  \"\$REFERENCE_MASTER_IMAGES_TARBALL\"
+  ;do
+    if [ -e \"\$i\" ];then
+     echo \"Warming docker cache from \$i\" >&2;
+     gzip -ckd \"\$i\" | docker load;
+     break;
+    fi;done;fi"
+# Also we only pull images if we got a successful login
+- sh -ec "if [ -e /docker_login_success ];then
+          for i in ${PRELOAD_IMAGES};do
+            ( echo \"docker pull \$i\" && docker pull \$i || /bin/true )&
+          done;wait;
+         fi"
+
+.manual_job_tpl: &manual_job_tpl
+  tags: ["{{cookiecutter.runner_tag}}"]
+  allow_failure: true
+  stage: manual_jobs
+  when: manual
+  only: [master, tags]
+  except: []
+
+cleanup_all_expired_build_artefacts_from_cache:
+  <<: [ *manual_job_tpl ]
+  script:
+  - &cleanup_all_expired_build_artefacts_from_cache |-
+    bash -ec 'while read f;do rm -fv "$f";done \
+    < <( find /cache/$CI_PROJECT_PATH_SLUG/docker-images/build-* \
+         -type f -mtime +$CACHE_DAYS )'
+
+cleanup_all_expired_docker_images_from_cache:
+  <<: [ *manual_job_tpl ]
+  before_script: []
+  script:
+  - &cleanup_all_expired_docker_images |-
+    bash -ec 'while read f;do rm -fv "$f";done \
+    < <( find /cache/$CI_PROJECT_PATH_SLUG/docker-images -type f )'
+
+cleanup_all_project_cache:
+  <<: [ *manual_job_tpl ]
+  before_script: []
+  script:
+  - &cleanup_all_project_cache rm -rf /cache/$CI_PROJECT_PATH_SLUG
+
+build_images: &build_images
+  variables: &build_images_vars
+    PRELOAD_IMAGES: "$LATEST_DOCKER_IMAGE $TAGGUED_DOCKER_IMAGE"
+  tags: ["{{cookiecutter.runner_tag}}"]
+  stage: build
+  script:
+  - &build_step1 |-
+    set +e
+    set -x
+    for i in $DOCKER_BUILT_SERVICES;do
+        $D_COMPOSE -f docker-compose-prod.yml -f docker-compose-build.yml build $i \
+        || ( echo "BUILD ERROR: $i" >> /docker_images_errors )
+    done
+    for i in $DOCKER_BUILT_SERVICES;do
+        $D_COMPOSE -f docker-compose-build.yml -f docker-compose-build-dev.yml build $i \
+        || ( echo "BUILD ERROR: $i" >> /docker_images_errors )
+    done
+    if [ -e /docker_images_errors ];then cat /docker_images_errors;exit 1;fi
+  - &build_step2 sh -ec "set -x
+    && docker inspect \"\${CURRENT_DOCKER_IMAGE}\" >/dev/null
+    && docker save
+       \$(docker history -q \"\${CURRENT_DOCKER_IMAGE}-dev\" | tr '\n' ' ' | tr -d '<missing>')
+       \"\${CURRENT_DOCKER_IMAGE}-dev\"
+       \$(docker history -q \"\${CURRENT_DOCKER_IMAGE}\" | tr '\n' ' ' | tr -d '<missing>')
+       \"\${CURRENT_DOCKER_IMAGE}\"
+       | gzip > \"\${IMAGES_TARBALL}-pending\"
+    && mv -fv \"\${IMAGES_TARBALL}-pending\" \"${IMAGES_TARBALL}\""
+
+.tests_tpl: &tests_tpl
+  tags: ["{{cookiecutter.runner_tag}}"]
+  stage: tests
+  variables: &test_vars_tpl
+    PRELOAD_IMAGES: ""
+    CI: "true"
+    CONTROL_COMPOSE_FILES: docker-compose.yml
+  script:
+  - &launch_test_stack |-
+    sh -ec 'for i in $DOCKER_SERVICES;
+     do ./control.sh up --force-recreate --no-deps $i;done'
+
+{% set testsc = (not cookiecutter.test_tests) and '#' or '' -%}
+{{testsc}}tests:
+{{testsc}}  <<: [ *tests_tpl ]
+{{testsc}}  script:
+{{testsc}}  - *launch_test_stack
+{{testsc}}  - ./control.sh test
+
+{% set lintingc = (not cookiecutter.test_linting) and '#' or '' -%}
+{{lintingc}}linting:
+{{lintingc}}  <<: [ *tests_tpl ]
+{{lintingc}}  script:
+{{lintingc}}  - *launch_test_stack
+{{lintingc}}  - ./control.sh linting
+
+{% set testscc = (not cookiecutter.test_coverage) and '#' or '' -%}
+{{testscc}}testcoverage:
+{{testscc}}  <<: [ *tests_tpl ]
+{{testscc}}  only: [master]
+{{testscc}}  coverage: '/^\s*Lines:\s*\d+.\d+\%/'
+{{testscc}}  script:
+{{testscc}}  - *launch_test_stack
+{{testscc}}  - ./control.sh coverage
+
+{% set teste2ec = (not cookiecutter.test_e2e) and '#' or '' -%}
+{{teste2ec}}e2etests:
+{{teste2ec}}  <<: [ *tests_tpl ]
+{{teste2ec}}  only: [master, cypress, tags]
+{{teste2ec}}  script:
+{{teste2ec}}  - *launch_test_stack
+{{teste2ec}}  - ./control.sh cypress
+
+.release_tpl: &release_tpl
+  stage: release
+  tags: ["{{cookiecutter.runner_tag}}"]
+  script:
+  # redo the docker login, without the /bin/true, failing if the registry is down
+  - &release_step1 sh -e /docker_login
+  # quoting & subshelling to work around gitlab variable substitutions
+  - &release_step2 sh -ec "docker tag \"\$(eval echo \$TO_RELEASE_DOCKER_IMAGE)-dev\"
+    \"\$(eval echo \$RELEASED_DOCKER_IMAGE)-dev\"
+    && docker tag \"\$(eval echo \$TO_RELEASE_DOCKER_IMAGE)\"
+    \"\$(eval echo \$RELEASED_DOCKER_IMAGE)\""
+  - &release_step3 sh -ec "
+    docker push \"\$(eval echo \$RELEASED_DOCKER_IMAGE)-dev\" &&
+    docker push \"\$(eval echo \$RELEASED_DOCKER_IMAGE)\""
+  variables: &release_vars
+    PRELOAD_IMAGES: ""
+    TO_RELEASE_DOCKER_IMAGE: "$CURRENT_DOCKER_IMAGE"
+
+release_taggued_imagep: &release_taggued_image
+  <<: [ *release_tpl ]
+  only: [tags]
+  variables:
+    <<: [ *release_vars ]
+    RELEASED_DOCKER_IMAGE: "$TAGGUED_DOCKER_IMAGE"
+
+release_latest_image: &release_latest_image
+  <<: [ *release_tpl ]
+  # all branchs given here will be associated to update the latest tag
+  only: [master]
+  variables:
+    <<: [ *release_vars ]
+    RELEASED_DOCKER_IMAGE: "$LATEST_DOCKER_IMAGE"
+
+# the job will only create a file upon full tests pipeline success
+flag_success_only_on_success:
+  tags: ["{{cookiecutter.runner_tag}}"]
+  stage: flag_success
+  before_script: []
+  script:
+  - touch "${SUCCESS_FLAG}"
+
+teardown_env: &teardown_env
+  tags: ["{{cookiecutter.runner_tag}}"]
+  variables:
+    PRELOAD_TARBALLS: ""
+  stage: teardown
+  when: always
+  script:
+  - &teardown_step1 $D_COMPOSE down || /bin/true
+  # keep latest tarballs in cache for rebuilds on references branch(s)
+  - &teardown_step2 if [ -e "${IMAGES_TARBALL}" ] && [ -e "${SUCCESS_FLAG}" ];then
+      if ( echo "$CI_COMMIT_REF_NAME"
+         | egrep -q "(^($MASTER_BRANCH)$|$RESTORE_REF_TARBALL_REGEX)" )
+      ;then
+           mv -f "$IMAGES_TARBALL" "$REFERENCE_IMAGES_TARBALL";
+      fi;
+    fi
+  # cleanup pipeline image & pending artefacts
+  - &teardown_step3 rm -fv ${IMAGES_TARBALL}* "${SUCCESS_FLAG}"
+  - *cleanup_all_expired_build_artefacts_from_cache
+
+.deploy_tpl: &deploy_tpl
+  tags: ["{{cookiecutter.runner_tag}}"]
+  stage: deploy
+  when: manual
+  allow_failure: false
+  variables: &deploy_vars_tpl
+    NONINTERACTIVE: "1"
+    DEPLOY_PLAYBOOK: ".ansible/playbooks/app.yml"
+    NO_SILENT: ""
+  before_script:
+{%-if cookiecutter.use_submodule_for_deploy_code%}
+  - *pullsubmodules
+{%endif%}
+  # make this in only one block to be easily reusable in deploy jobs
+  - &deploy_setup set -e;vv(){ echo "$@">&2;"$@"; };
+    if [ "x${A_ENV_NAME}" = x ];then
+    echo "\$A_ENV_NAME is not set, bailing out" >&2 ;exit 1;fi;
+    vv .ansible/scripts/download_corpusops.sh;
+    vv .ansible/scripts/setup_ansible.sh;
+  - &deploy_key_setup set -e;vv(){ echo "$@">&2;"$@"; };vv
+    .ansible/scripts/call_ansible.sh -vv .ansible/playbooks/deploy_key_setup.yml
+  script:
+  - .ansible/scripts/call_ansible.sh -vv -l $A_ENV_NAME "${DEPLOY_PLAYBOOK}"
+
+{{devhostdeploycomment}}deploy_dev: &deploy_dev
+{{devhostdeploycomment}}  <<: [ *deploy_tpl ]
+{{devhostdeploycomment}}  when: on_success
+{{devhostdeploycomment}}  variables: &deploy_dev_vars
+{{devhostdeploycomment}}    <<: [ *deploy_vars_tpl ]
+{{devhostdeploycomment}}    A_ENV_NAME: dev
+{{devhostdeploycomment}}  only: [master, tags]
+{{devhostdeploycomment}}  script: [master, tags]
+{{devhostdeploycomment}}  - .ansible/scripts/call_ansible.sh -vv -l $A_ENV_NAME "${DEPLOY_PLAYBOOK}"
+{{devhostdeploycomment}}  environment:
+{{devhostdeploycomment}}    name: dev
+{{devhostdeploycomment}}    url: https://{{cookiecutter.dev_domain}}
+
+{% set cypresscomment = (not cookiecutter.test_cypress) and '#  ' or '' %}
+{{cypresscomment}}e2etests:
+{{cypresscomment}}  tags: ["{{cookiecutter.runner_tag}}"]
+{{cypresscomment}}  stage: deploy
+{{cypresscomment}}  when: manual
+{{cypresscomment}}  only: [master, cypress, tags]
+{{cypresscomment}}  variables:
+{{cypresscomment}}    PRELOAD_IMAGES: ""
+{{cypresscomment}}    CI: "true"
+{{cypresscomment}}    CONTROL_COMPOSE_FILES: docker-compose.yml
+{{cypresscomment}}  # no dependency on the test stack, we target a distant dev server
+{{cypresscomment}}  script:
+{{cypresscomment}}  - ./control.sh cypress_run https://{{cookiecutter.dev_domain}}
+{{cypresscomment}}  artifacts:
+{{cypresscomment}}    paths:
+{{cypresscomment}}    - ./e2e/cypress/screenshots
+{{cypresscomment}}    - ./e2e/cypress/videos
+{{cypresscomment}}    when: on_failure
+{{cypresscomment}}    # NEVER let this stuff fill the gitlab disks !
+{{cypresscomment}}    expire_in: 4 hours
+
+# manual rebuild on any branch except master or tags , no filter
+# and the according deploy job
+# implicitly the deploy job on the branch will auto-deploy the manually built image
+.manual_jobs_on_branches_tpl: &manual_jobs_on_branches_tpl
+  only: [branches, triggers, web, api, schedules]
+  except: [master, tags]
+
+# As gitlab-ci does not support pipeline branching, for manual dev release, we need
+# to make a last and one-for-all deploy step for non-blocking pipelines when we do a merge request
+{{devhostdeploycomment}}manual_dev_release_and_deploy: &manual_dev_release_and_deploy
+{{devhostdeploycomment}}  <<: [ *manual_jobs_on_branches_tpl, *deploy_dev, *release_tpl ]
+{{devhostdeploycomment}}  stage: manual_jobs
+{{devhostdeploycomment}}  when: manual
+{{devhostdeploycomment}}  allow_failure: true
+{{devhostdeploycomment}}  variables:
+{{devhostdeploycomment}}    <<: [ *build_images_vars, *release_vars, *deploy_dev_vars ]
+{{devhostdeploycomment}}    RELEASED_DOCKER_IMAGE: "$DEV_DOCKER_IMAGE"
+{{devhostdeploycomment}}  before_script: *top_before_script
+{{devhostdeploycomment}}  script:
+{{devhostdeploycomment}}  - *build_step1
+{{devhostdeploycomment}}  - *release_step1
+{{devhostdeploycomment}}  - *release_step2
+{{devhostdeploycomment}}  - *release_step3
+{{devhostdeploycomment}}  - *teardown_step1
+{{devhostdeploycomment}}  - *teardown_step2
+{{devhostdeploycomment}}  - *teardown_step3
+{{devhostdeploycomment}}  - *deploy_setup
+{{devhostdeploycomment}}  - *deploy_key_setup
+{{devhostdeploycomment}}  - &deploy_manual_dev_cmd |-
+{{devhostdeploycomment}}    .ansible/scripts/call_ansible.sh -vv -l $A_ENV_NAME \
+{{devhostdeploycomment}}    "${DEPLOY_PLAYBOOK}" -e "{cops_{{cookiecutter.app_type}}_docker_tag: dev}"
+{{devhostdeploycomment}}manual_dev_deploy_without_release:
+{{devhostdeploycomment}}  <<: [ *manual_dev_release_and_deploy ]
+{{devhostdeploycomment}}  script:
+{{devhostdeploycomment}}  - *deploy_setup
+{{devhostdeploycomment}}  - *deploy_key_setup
+{{devhostdeploycomment}}  - *deploy_manual_dev_cmd
+
+{% if cookiecutter.qa_host -%}
+deploy_qa: &deploy_qa
+  <<: [ *deploy_tpl ]
+  only: [tags, master]
+  variables:
+    <<: [ *deploy_vars_tpl ]
+    A_ENV_NAME: qa
+  environment:
+    name: qa
+    url: https://{{cookiecutter.qa_domain}}
+
+{% endif -%}
+{%- if cookiecutter.staging_host -%}
+deploy_staging: &deploy_staging
+  <<: [ *deploy_tpl ]
+  only: [tags, master]
+  variables:
+    <<: [ *deploy_vars_tpl ]
+    A_ENV_NAME: staging
+  environment:
+    name: staging
+    url: https://{{cookiecutter.staging_domain}}
+
+{%endif-%}
+deploy_prod: &deploy_prod
+  <<: [ *deploy_tpl ]
+  only: [tags, master]
+  variables:
+    <<: [ *deploy_vars_tpl ]
+    A_ENV_NAME: prod
+  environment:
+    name: prod
+    url: https://{{cookiecutter.prod_domain}}
+{%- if cookiecutter.haproxy %}
+
+.reconfigure_haproxy_and_fw: &reconfigure_haproxy_and_firewall_tpl
+  <<: [ *manual_job_tpl ]
+  when: manual
+  script:
+  - .ansible/scripts/call_ansible.sh -vvv -l baremetals_${A_ENV_NAME}
+    local/*/*/*/playbooks/provision/lxc_compute_node/main.yml
+    -t lxc_haproxy_registrations,lxc_ms_iptables_registrations
+
+{% if cookiecutter.prod_host -%}
+reconfigure_prod_haproxy_and_fw:
+  <<: [ *reconfigure_haproxy_and_firewall_tpl, *deploy_prod ]
+{% endif %}
+{{devhostdeploycomment}}reconfigure_dev_haproxy_and_fw:
+{{devhostdeploycomment}}  <<: [ *reconfigure_haproxy_and_firewall_tpl, *deploy_dev ]
+{% endif %}
+# Allow to immediatly trigger a deploy without waiting for the full pipeline to complete
+# eg: redeploying after only issuing a deploy code or configuration change.
+{{devhostdeploycomment}}manual_deploy_dev:
+{{devhostdeploycomment}}  <<: [ *manual_job_tpl, *deploy_dev ]
+
+{% if cookiecutter.qa_host -%}
+manual_deploy_qa:
+  <<: [ *manual_job_tpl, *deploy_qa ]
+
+{% endif -%}
+{%- if cookiecutter.staging_host -%}
+manual_deploy_staging:
+  <<: [ *manual_job_tpl, *deploy_staging ]
+
+{% endif -%}
+manual_deploy_prod:
+  <<: [ *manual_job_tpl, *deploy_prod ]
