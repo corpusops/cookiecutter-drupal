@@ -341,7 +341,7 @@ server {
             fastcgi_param   HTTPS                   $fastcgi_ssl_toggle;
             fastcgi_pass unix:/var/run/php-fpm/makina.socket;
             allow 127.0.0.1;
-            allow {{ cookiecutter.monitoring-network }};
+            allow {{ cookiecutter.monitoring_network }};
             deny all;
     }
     {% endif %}
@@ -350,7 +350,7 @@ server {
         stub_status on;
         access_log   off;
         allow 127.0.0.1;
-        allow {{ cookiecutter.monitoring-network }};
+        allow {{ cookiecutter.monitoring_network }};
         deny all;
     }
     {% endif %}

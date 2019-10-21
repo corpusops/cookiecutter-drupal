@@ -91,5 +91,5 @@
     "php_status": "/php-status-drupal",
     "with_nginx_status": "y",
     "nginx_status": "/nginx-status",
-    "monitoring-network": "10.0.0.0/8"
+    "monitoring_network": "10.0.0.0/8"
 }
