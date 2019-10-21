@@ -22,7 +22,7 @@ $databases['default']['default'] = array(
   'password' => '{{ '{{ ' }}.Env.DATABASE_PASSWD }}',
   'host' => '{{ '{{ ' }}.Env.DATABASE_HOST }}',
   'port' => '{{ '{{ ' }}.Env.DATABASE_PORT }}',
-  {% if db_mode == 'mysql' -%} 
+  {% if cookiecutter.db_mode == 'mysql' -%} 
   'collation' => 'utf8_general_ci',
   'namespace' => 'Drupal\\Core\\Database\\Driver\\mysql',
   {%- endif %}
