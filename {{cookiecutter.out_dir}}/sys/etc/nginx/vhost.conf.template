@@ -123,6 +123,7 @@ server {
     gzip_http_version 1.1;
     gzip_min_length 256;
     gzip_comp_level 4;
+    gzip_disable "msie6";
     client_max_body_size 100M;
     # feed the map variables for ssl up
     set $http_x_ssl                $http_x_ssl_resolved;
@@ -168,7 +169,6 @@ server {
 
     {{'{{'}} if not .nostatics }}
     location {{cookiecutter.statics_uri}}/ {
-
         add_header Pragma "cache";
         add_header Cache-Control "public";
     }
@@ -182,8 +182,58 @@ server {
             return 503;
         }
 
+        # Allow "Well-Known URIs" as per RFC 5785
+        location ~* ^/.well-known/ {
+            allow all;
+        }
+
+        # Trying to access private files directly returns a 404.
+        location ^~ /sites/.*/files/private/ {
+            internal;
+        }
+
+        # Regular private file serving (i.e. handled by Drupal).
+        # Private file's path can come with a language prefix.
+        location ~ ^(/[a-z\-]+)?/system/files/ {
+            try_files $uri /index.php?$query_string;
+            log_not_found off;
+        }
+
+        location ~* /files/styles/ {
+            {{'{{'}} if .Env.DRUPAL__HTTP_PROTECT_PASSWORD }}
+            auth_basic off;
+            {{'{{'}} end }}
+            access_log off;
+            expires 30d;
+            try_files $uri /index.php?$query_string;
+        }
+
+        # All static files will be served directly.
+        location ~* ^.+\.(?:txt|css|js|jpe?g|gif|htc|ico|png|html|xml|woff|woff2|eot|ttf|svg|pdf|ppt|pptx|doc|docx|xls|xlsx|odt|ods|avi|mp4)$ {
+            {{'{{'}} if .Env.DRUPAL__HTTP_PROTECT_PASSWORD }}
+            auth_basic off;
+            {{'{{'}} end }}
+            access_log off;
+            expires 30d;
+            # No need to bleed constant updates. Send the all shebang in one
+            # fell swoop.
+            tcp_nodelay off;
+            # Set the OS file cache.
+            open_file_cache max=3000 inactive=120s;
+            open_file_cache_valid 45s;
+            open_file_cache_min_uses 2;
+            open_file_cache_errors off;
+        }
+
+        # Replicate the Apache <FilesMatch> directive of Drupal standard
+        # .htaccess. Disable access to any code files. Return a 404 to curtail
+        # information disclosure.
+        location ~* ^(?:.+\.(?:htaccess|yml|yaml|log|make|engine|inc|info|install|module|profile|po|sh|.*sql|theme|twig|tpl(?:\.php)?|xtmpl)|code-style\.pl|/Entries.*|/Repository|/Root|/Tag|/Template|composer\.(json|lock))$ {
+            return 404;
+        }
+
         # try to serve file directly, fallback to index.php
-        try_files $uri /index.php$is_args$args;
+        try_files $uri /index.php?$query_string;
     }
 
     location ~ ^/index\.php(/|$) {
@@ -235,11 +285,76 @@ server {
         fastcgi_pass drupal:9000;
     }
 
+    # hidden directories
+    location ~ (^|/)\. { {
+        return 404;
+    }
+    location = /patches {
+        return 404;
+    }
+    location = /backup {
+        return 404;
+    }
+    location = /robots.txt {
+        log_not_found off;
+        access_log off;
+    }
+    location = /rss.xml {
+        try_files $uri /index.php?$query_string;
+    }
+    location = /sitemap.xml {
+        try_files $uri /index.php?$query_string;
+    }
+    location = /favicon.ico {
+        log_not_found off;
+        access_log off;
+        try_files /favicon.ico =204;
+    }
     # return 404 for all other php files not matching the front controller
     # this prevents access to other php files you don't want to be accessible.
     location ~ \.php$ {
         return 404;
     }
+
+    {% if cookiecutter.with_php_status %}
+    location {{ cookiecutter.nginx_status}} {
+            fastcgi_split_path_info ^(.+\.php)(/.+)$;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            fastcgi_param SCRIPT_NAME $fastcgi_script_name;
+            fastcgi_param   QUERY_STRING            $query_string;
+            fastcgi_param   REQUEST_METHOD          $request_method;
+            fastcgi_param   CONTENT_TYPE            $content_type;
+            fastcgi_param   CONTENT_LENGTH          $content_length;
+            fastcgi_param   REQUEST_URI             $request_uri;
+            fastcgi_param   DOCUMENT_URI            $document_uri;
+            fastcgi_param   DOCUMENT_ROOT           $document_root;
+            fastcgi_param   SERVER_PROTOCOL         $server_protocol;
+            fastcgi_param   REQUEST_SCHEME          $scheme;
+            fastcgi_param   HTTPS                   $https if_not_empty;
+            fastcgi_param   GATEWAY_INTERFACE       CGI/1.1;
+            fastcgi_param   SERVER_SOFTWARE         nginx/$nginx_version;
+            fastcgi_param   REMOTE_ADDR             $remote_addr;
+            fastcgi_param   REMOTE_PORT             $remote_port;
+            fastcgi_param   SERVER_ADDR             $server_addr;
+            fastcgi_param   SERVER_PORT             $forwarded_server_port;
+            fastcgi_param   SERVER_NAME             $http_host;
+            fastcgi_param   HTTPS                   $fastcgi_ssl_toggle;
+            fastcgi_pass unix:/var/run/php-fpm/makina.socket;
+            allow 127.0.0.1;
+            allow {{ cookiecutter.monitoring-network }};
+            deny all;
+    }
+    {% endif %}
+    {% if cookiecutter.with_nginx_status %}
+    location {{ cookiecutter.nginx_status}} {
+        stub_status on;
+        access_log   off;
+        allow 127.0.0.1;
+        allow {{ cookiecutter.monitoring-network }};
+        deny all;
+    }
+    {% endif %}
+
 
     location ~ ^/mailcatcher/ {
         proxy_pass http://mailcatcher:8025;
