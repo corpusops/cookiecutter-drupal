@@ -177,13 +177,15 @@ services_ports=1 ./control.sh usershell
 ./manage.py runserserver 0.0.0.0:8000
 ```
 
-## Calling Symfony console commands
+## Calling drush & console commands
 
 ```sh
 ./control.sh console [options]
+./control.sh drupal [options]
+./control.sh drush [options]
 # For instance:
-# ./control.sh console doctrine:migrations:migrate --allow-no-migration
-# ./control.sh console cache:clear
+# ./control.sh console
+# ./control.sh drush cache-rebuild
 # ...
 ```
 
