@@ -5,7 +5,7 @@ x-images:
     entrypoint: 'sh -c "while true;do echo notstarted;sleep 65000;done"'
   {{cookiecutter.app_type}}: &{{cookiecutter.app_type}}
     environment: &{{cookiecutter.app_type}}_env
-      APP_ENV: "dev"
+      DRUPAL_ENV_NAME: "dev"
       APP_SECRET: "42"
       PHP_DISPLAY_ERROR: 1
       NO_MIGRATE: "1"

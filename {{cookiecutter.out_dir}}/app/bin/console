@@ -12,7 +12,7 @@ set_time_limit(0);
 require __DIR__.'/../vendor/autoload.php';
 
 (new Dotenv())->load(__DIR__.'/../.env');
-$env = $_SERVER['APP_ENV'] ?? $_ENV['APP_ENV'] ?? 'dev';
+$env = $_SERVER['DRUPAL_ENV_NAME'] ?? $_ENV['DRUPAL_ENV_NAME'] ?? 'dev';
 $debug = (bool)($_SERVER['APP_DEBUG'] ?? $_ENV['APP_DEBUG'] ?? ('prod' !== $env && 'preprod' !== $env && 'rec' !== $env && 'test' !== $env));
 
 if ($debug) {
@@ -21,7 +21,7 @@ if ($debug) {
 }
 
 $input = new ArgvInput();
-$env = $input->getParameterOption(['--env', '-e'], $_SERVER['APP_ENV'] ?? 'dev', true);
+$env = $input->getParameterOption(['--env', '-e'], $_SERVER['DRUPAL_ENV_NAME'] ?? 'dev', true);
 $debug = (bool) ($_SERVER['APP_DEBUG'] ?? ('prod' !== $env)) && !$input->hasParameterOption('--no-debug', true);
 
 if ($debug) {

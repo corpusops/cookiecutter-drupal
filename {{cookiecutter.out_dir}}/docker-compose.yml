@@ -9,7 +9,7 @@ x-images:
     environment: &{{cookiecutter.app_type}}_env
       PHP_USER: "{{cookiecutter.app_type}}"
       PHP_GROUP: "{%if cookiecutter.base_os=='centos'%}apache{%else%}www-data{%endif%}"
-      APP_ENV: "${APP_ENV:-prod}"
+      DRUPAL_ENV_NAME: "${DRUPAL_ENV_NAME:-prod}"
       APP_SECRET: "${APP_SECRET:-77fd8b950969a6909c46ab0b6fd5d062}"
       POSTGRES_STARTUP_TIMEOUT: "45s"
       IMAGE_MODE: phpfpm

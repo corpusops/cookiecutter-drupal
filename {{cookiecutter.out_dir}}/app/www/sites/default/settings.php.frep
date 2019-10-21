@@ -1,0 +1,123 @@
+<?php
+$root = "{{ cookiecutter.app_path }}";
+ini_set('session.gc_probability', 1);
+ini_set('session.gc_divisor', 100);
+ini_set('session.gc_maxlifetime', 200000);
+ini_set('session.cookie_lifetime', 2000000);
+$settings['container_yamls'][] = __DIR__ . '/services.yml';
+
+$base_url = '{{ '{{ ' }}.Env.ABSOLUTE_URL_SCHEME }}{{ '{{ ' }}.Env.ABSOLUTE_URL_DOMAIN }}:{{ '{{ ' }}.Env.ABSOLUTE_URL_PORT }}';
+// this is a hack for drush in site-install mode, overriding base_url with crap,
+// at least you have a copy in variables, if needed
+$conf['base_url'] = $base_url;
+
+// D8 settings to "replace" $base_url configuration in D7 
+$settings['trusted_host_patterns'] = array('^localhost|{{ '{{ ' }} .Env.ABSOLUTE_URL_DOMAIN.replace(".", "\.") }}$'); 
+
+$databases = array();
+$databases['default']['default'] = array(
+  'driver' => '{{ '{{ ' }}.Env.DATABASE_DRIVER }}',
+  'database' => '{{ '{{ ' }}.Env.DATABASE_DB }}',
+  'username' => '{{ '{{ ' }}.Env.DATABASE_USER }}',
+  'password' => '{{ '{{ ' }}.Env.DATABASE_PASSWD }}',
+  'host' => '{{ '{{ ' }}.Env.DATABASE_HOST }}',
+  'port' => '{{ '{{ ' }}.Env.DATABASE_PORT }}',
+  {% if db_mode == 'mysql %} 
+  'collation' => 'utf8_general_ci',
+  'namespace' => 'Drupal\\Core\\Database\\Driver\\mysql',
+  {% endif %}
+  'prefix' => '{{ '{{ ' }}.Env.DATABASE_PREFIX }}'
+);
+
+//$settings['reverse_proxy'] = '127.0.0.1,127.0.0.2';
+//$settings['reverse_proxy_header'] = 
+//$settings['reverse_proxy_addresses'] =
+$settings['update_free_access'] = FALSE;
+$drupal_hash_salt = {{ '{{ ' }}.Env.APP_SECRET }}
+
+/**
+ * Vary Cookie: please Read
+ *
+ * By default, Drupal sends a "Vary: Cookie" HTTP header for anonymous page
+ * views. This tells a HTTP proxy that it may return a page from its local
+ * cache without contacting the web server, if the user sends the same Cookie
+ * header as the user who originally requested the cached page. Without "Vary:
+ * Cookie", authenticated users would also be served the anonymous page from
+ * the cache. If the site has mostly anonymous users except a few known
+ * editors/administrators, the Vary header can be omitted. This allows for
+ * better caching in HTTP proxies (including reverse proxies), i.e. even if
+ * clients send different cookies, they still get content served from the cache.
+ * However, authenticated users should access the site directly (i.e. not use an
+ * HTTP proxy, and bypass the reverse proxy if one is used) in order to avoid
+ * getting cached pages from the proxy.
+ */
+$settings['omit_vary_cookie'] = 1;
+
+// Do not use the new image style token. it removes images from varnish and
+// breaks some modules
+$config['image.settings']['allow_insecure_derivatives'] = 1;
+// Imagecache
+$config['system.image.gd']['jpeg_quality'] = 95;
+
+// CRON ///////////////////////////////////////////////////////////////
+// disallow the poor-man cron, we do it via drush
+$config['automated_cron.settings']['interval'] = 0;
+
+// File system ////////////////////////////////////////////////////////////////
+$settings['file_public_path'] = 'sites/default/files';
+$settings['file_private_path'] = $root . '/var/private';
+$config['system.file']['path']['temporary'] = $root . '/var/tmp';
+$config['system.file']['temporary_maximum_age'] = 21600; // in seconds 21600->6hours
+
+// File system permissions ////////////////////////////////////////////////////
+// default is 0775, we have user-group:www-data in sites/default/files
+// when creating a new directory the first '2' will enforce keeping
+// user-group as the group of files in this directory, 'others' do
+// not need anything, so 2770 is good. But a 1st 0 should be added
+// to say it's an octal mode (and do not add quotes)
+$settings['file_chmod_directory']=02770;
+// default is 0664
+$settings['file_chmod_file']={{data.file_chmod_file}};
+
+// ensure nothing in the default multithread shared umask will break
+// our mkdir commands (chmod is not impacted, but mkdir is...)
+umask(0000);
+
+// Log level //////////////////////////////////////////////////////////////////
+// allowed values: 'hide', 'some', 'all', 'verbose'. 
+// $config['system.logging']['error_level'] = 'verbose';
+
+// Compression ////////////////////////////////////////////////////////////////
+// Generate aggregates
+$config['system.performance']['css']['preprocess'] = 1;
+$config['system.performance']['js']['preprocess'] = 1;
+// Generate gzip version of aggregates
+$config['system.performance']['css']['preprocess'] = 1;
+$config['system.performance']['js']['preprocess'] = 1;
+
+// If compression is done on HTTPD level NEVER SET THIS to 1!
+$conf['page_compression'] = 0;
+
+// Define Drupal cache settings:--------------
+// this will be in Cache-Control: public max-age
+// $config['system.performance']['cache']['page']['max_age'] = 33600;
+
+$config['system.performance']['fast_404']['exclude_paths'] = '/\/(?:styles)\//';
+$config['system.performance']['fast_404']['paths'] = '/\.(?:txt|png|gif|jpe?g|css|js|ico|swf|flv|cgi|bat|pl|dll|exe|asp|yml)$/i';
+$config['system.performance']['fast_404']['html'] = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML+RDFa 1.0//EN" "http://www.w3.org/MarkUp/DTD/xhtml-rdfa-1.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL "@path" was not found on this server.</p></body></html>';
+
+$settings['allow_authorize_operations'] = FALSE;
+
+// D8 config sync directory, better outside webroot than in a random directory in sites/default/files
+$config_directories = array(
+    'staging' => '$root/lib/config/staging',
+    'sync' => '$root/lib/config/sync',
+    'to_dev' => '$root/lib/config/to_dev',
+);
+
+$settings['install_profile'] = '{{ddata.drupal_profile}}';
+
+$localsettingsfile = DRUPAL_ROOT . "/sites/default/local.settings.php";
+if (file_exists($localsettingsfile)) {
+  include_once($localsettingsfile);
+}

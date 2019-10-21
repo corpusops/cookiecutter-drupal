@@ -431,7 +431,7 @@ do_test() {
     set -- do_dcompose run --no-deps --rm \
         --entrypoint /bin/bash \
         $APP_CONTAINER -ec ": \
-            && export APP_ENV=test \
+            && export DRUPAL_ENV_NAME=test \
             && export XDEBUG_CONFIG=\"${XDEBUG_CONFIG-}\" \
             && export NO_COMPOSER=\"${NO_COMPOSER-1}\" \
             && export NO_UPDB=\"${NO_UPDB-}\" \
@@ -491,9 +491,9 @@ do_osx_sync() {
             if [ 'x'\$do_resync = xv ];then rm -rf vendor/* && do_resync=1;fi \
             && if [ 'x'\$do_resync = x1 ];then bin/composerinstall;fi; } \
         && staticsync() {
-            for i in private/ public/;do rsync -av --exclude=.env ../app.host/\$i ./\$i;done \
-            && rsync -av --delete --exclude=vendor  --exclude=.env  --exclude=public --exclude=private --exclude=var --exclude=node_modules ../app.host/ ./ \
-            && if [ 'x'\$do_resync != x ];then bin/console cache:clear;fi; } \
+            for i in var/private/ var/public/;do rsync -av --exclude=.env ../app.host/\$i ./\$i;done \
+            && rsync -av --delete --exclude=vendor  --exclude=.env  --exclude=var --exclude=node_modules ../app.host/ ./ \
+            && if [ 'x'\$do_resync != x ];then bin/drush cache-rebuild;fi; } \
         && docomposerinstall \
         && staticsync \
         && while true;do \

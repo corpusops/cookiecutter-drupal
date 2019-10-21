@@ -9,7 +9,7 @@
 >
     <php>
         <ini name="error_reporting" value="-1" />
-        <env name="APP_ENV" value="test" />
+        <env name="DRUPAL_ENV_NAME" value="test" />
         <env name="SHELL_VERBOSITY" value="0" />
         <env name="TEST_FULL_MATRIX" value="0" />
         <!--

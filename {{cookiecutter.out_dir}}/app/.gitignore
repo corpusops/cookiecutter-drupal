@@ -3,6 +3,10 @@
 .settings
 coverage
 
+# {{cookiecutter.app_type.upper()}} local settings
+/www/sites/default/local.settings.php
+/www/sites/default/settings.php
+
 # Public files upload directory
 /var/public
 # Private files & othe rvar stuff
