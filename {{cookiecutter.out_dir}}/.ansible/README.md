@@ -227,21 +227,21 @@ The ansible playbook do:
 
 
 ## Symfony settings setup
-To add/modify symfony settings, you specifically need to edit ``.ansible/playbooks/roles/symfony_vars/defaults/main.yml`` for hosted deployments,<br/>
-and adapt certainly one of ``cops_symfony_docker_env_freeform``, ``cops_symfony_docker_env_defaults``, ``cops_symfony_docker_env_extra``.
+To add/modify drupal settings, you specifically need to edit ``.ansible/playbooks/roles/drupal_vars/defaults/main.yml`` for hosted deployments,<br/>
+and adapt certainly one of ``cops_drupal_docker_env_freeform``, ``cops_drupal_docker_env_defaults``, ``cops_drupal_docker_env_extra``.
   - Here, never forget to abuse ansible variables to cut variables from their templates<br/>
     and put what's need to be in the general inventory and what needs to be crypted in the crypted vault.<br/>
     eg:
       - In all cases, adapt/edit inventory (variables may already exist)
         ```sh
-        $EDITOR .ansible/playbooks/roles/symfony_vars/defaults/main.yml
+        $EDITOR .ansible/playbooks/roles/drupal_vars/defaults/main.yml
         ```
 
           ```yaml
           # ...
-          cops_symfony_docker_env_extra:
-            MYSETTINGS={{'{{'}}cops_symfony_foobar}}
-            MYSECRETSETTINGS={{'{{'}}cops_symfony_footruc}}
+          cops_drupal_docker_env_extra:
+            MYSETTINGS={{'{{'}}cops_drupal_foobar}}
+            MYSECRETSETTINGS={{'{{'}}cops_drupal_footruc}}
           ```
       - Set variables values in related clear group vars
         ```sh
@@ -250,7 +250,7 @@ and adapt certainly one of ``cops_symfony_docker_env_freeform``, ``cops_symfony_
 
           ```yaml
           # ...
-          cops_symfony_foobar: supervalue
+          cops_drupal_foobar: supervalue
           ```
 
       - Set crypted values (see ansible/README about vaults) in related crypted group vars
@@ -262,5 +262,5 @@ and adapt certainly one of ``cops_symfony_docker_env_freeform``, ``cops_symfony_
 
           ```yaml
           # ...
-          cops_symfony_footruc: abcd123456789secret
+          cops_drupal_footruc: abcd123456789secret
           ```

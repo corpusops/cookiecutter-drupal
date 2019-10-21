@@ -82,11 +82,11 @@ server {
     server_name {{'{{'}} $v.server_name }}{{'{{'}}if $v.server_aliases }}{{'{{'}}$v.server_aliases}}{{'{{'}}end}};
     server_name_in_redirect {{'{{'}} $v.server_name_in_redirect }};
 
-    error_log  /logs/symfony-error.log  debug;
-    access_log /logs/symfony-access.log custom_combined if=$method_loggable;
+    error_log  /logs/drupal-error.log  debug;
+    access_log /logs/drupal-access.log custom_combined if=$method_loggable;
 
     {{'{{'}} define "vhost" }}
-    {{'{{'}} if .Env.SYMFONY__HTTP_PROTECT_PASSWORD }}
+    {{'{{'}} if .Env.DRUPAL__HTTP_PROTECT_PASSWORD }}
     auth_basic            "Restricted";
     auth_basic_user_file  /etc/htpasswd-protect;
     {{'{{'}} end }}
@@ -232,7 +232,7 @@ server {
         fastcgi_index index.php;
         # should we ignore the request is aborted by the client?
         fastcgi_ignore_client_abort off;
-        fastcgi_pass symfony:9000;
+        fastcgi_pass drupal:9000;
     }
 
     # return 404 for all other php files not matching the front controller
@@ -278,8 +278,8 @@ server {
     ssl_session_timeout 10m;
     ssl_prefer_server_ciphers on;
     ssl_dhparam {{'{{'}} $v.diffie }};
-    error_log  /logs/ssl-symfony-error.log  crit;
-    access_log /logs/ssl-symfony-access.log custom_combined if=$method_loggable;
+    error_log  /logs/ssl-drupal-error.log  crit;
+    access_log /logs/ssl-drupal-access.log custom_combined if=$method_loggable;
     {{'{{'}} template "vhost" $v }}
 }
 {{'{{'}} end }}

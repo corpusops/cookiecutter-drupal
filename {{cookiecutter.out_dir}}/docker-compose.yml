@@ -26,7 +26,7 @@ x-images:
       && echo "launching init.sh"
       && /init.sh
     volumes:
-      # - ./sys/crontab:/etc/cron.d/symfony # nope -> chown root done on that file, prefer a COPY, or a template
+      # - ./sys/crontab:/etc/cron.d/drupal # nope -> chown root done on that file, prefer a COPY, or a template
       - logs:/logs/
       - publiccontrib:{{cookiecutter.public_files_path}}
       - private:{{cookiecutter.private_path}}

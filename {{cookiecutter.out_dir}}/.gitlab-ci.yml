@@ -56,7 +56,7 @@ variables:
   SUCCESS_FLAG: "/cache/$CI_PROJECT_PATH_SLUG/ci_success_${CI_PIPELINE_IID}"
 {%-if cookiecutter.use_submodule_for_deploy_code%}
   # {{cookiecutter.lname}} settings
-  SYMFONY_DEPLOY_VERSION: origin/stable
+  DRUPAL_DEPLOY_VERSION: origin/stable
 {%endif%}
 
 # NEVER ever use gitlab-ci cache, its broken by design in most case of CI related tasks
@@ -83,7 +83,7 @@ variables:
 before_script: &top_before_script
 {%-if cookiecutter.use_submodule_for_deploy_code%}
 - &pullsubmodules
-    cd {{cookiecutter.deploy_project_dir}} && git fetch origin && git reset --hard $SYMFONY_DEPLOY_VERSION && cd -
+    cd {{cookiecutter.deploy_project_dir}} && git fetch origin && git reset --hard $DRUPAL_DEPLOY_VERSION && cd -
 {%endif%}
 - for i in
     /cache/$CI_PROJECT_PATH_SLUG/docker-images

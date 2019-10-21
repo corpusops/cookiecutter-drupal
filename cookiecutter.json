@@ -34,7 +34,7 @@
     "enable_cron": "",
     "qa_port": "22",
     "dev_port": "22",
-    "symfony_project_name": "{{cookiecutter.lname}}",
+    "drupal_project_name": "{{cookiecutter.lname}}",
     "prod_port": "22",
     "app_path": "/code/app/",
     "drupal_env": "/code/app/.env",

@@ -23,7 +23,7 @@ if [ -e app ];then
 fi
 export PROJECT_DIR
 
-export APP_TYPE="${APP_TYPE:-symfony}"
+export APP_TYPE="${APP_TYPE:-drupal}"
 export APP_USER="${APP_USER:-$APP_TYPE}"
 export APP_GROUP="$APP_USER"
 

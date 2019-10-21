@@ -14,7 +14,7 @@ use_submodule_for_deploy_code = bool(
     '{{cookiecutter.use_submodule_for_deploy_code}}'.strip())
 
 # Workaround cookiecutter no support of symlinks
-TEMPLATE = 'cookiecutter-symfony'
+TEMPLATE = 'cookiecutter-drupal'
 SYMLINKS_DIRS = {
     ".ansible/playbooks/roles/{{cookiecutter.app_type}}_vars":
     "../../../{{cookiecutter.deploy_project_dir}}/.ansible/playbooks/roles/{{cookiecutter.app_type}}_vars",  #noqa
@@ -74,23 +74,25 @@ if [ ! -e "{{cookiecutter.deploy_project_dir}}/.git" ];then
 """.format(**locals())
 EGITSCRIPT = """
 {%raw%}vv() {{ echo "$@">&2;"$@"; }}{%endraw%}
+{#
 {% for i in ['dev', 'prod', 'qa', 'staging'] -%}
 {% if not cookiecutter['{0}_host'.format(i)]%}
 git rm -rf \
    .ansible/inventory/group_vars/{{i}} \
-   src/{{cookiecutter.symfony_project_name}}/settings/instances/{{i}}* \
+   www/sites/default/settings/settings.{{i}}.php \
         || /bin/true
 rm -rfv \
    .ansible/inventory/group_vars/{{i}} \
-   src/{{cookiecutter.symfony_project_name}}/settings/instances/{{i}}*
+   www/sites/default/settings/settings.{{i}}.php
 {% endif %}
 {% endfor %}
+#}
 if [ -e Dockerfile ] && [ ! -h Dockerfile ];then
 sed -i -re \
 	"s/PHP_VER=.*/PHP_VER={{cookiecutter.php_ver}}/g" \
 	Dockerfile
 sed -i -re \
-	"s/project/{{cookiecutter.symfony_project_name}}/g" \
+	"s/project/{{cookiecutter.drupal_project_name}}/g" \
 	Dockerfile
 fi
 set +x

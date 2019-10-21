@@ -59,8 +59,6 @@ php-pgsql
 php-process
 php-soap
 # php-suhosin
-# php-symfony-common
-# php-symfony-yaml
 php-xml
 php-xmlrpc
 php-xdebug

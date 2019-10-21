@@ -1,6 +1,6 @@
 name: {{cookiecutter.name}}
 type: profile
-description: 'Install of the {{cookiecutter.name}} website.'
+description: 'Install of the {{cookiecutter.drupal_project_name}} website.'
 core: '8.x'
 
 distribution:
