@@ -50,10 +50,10 @@ services:
     - "{{cookiecutter.local_http_port}}:80"
     volumes:
       # remount public/private (named volumes on prod, local remount on dev)
-      # on /code/app/public/files and /code/app/private
-      - ./app/public/:/code/app/public
-      - ./app/public/files:/code/app/public/files:ro
-      - ./app/private:/code/app/private:ro
+      # on /code/app/var/public (files) and /code/app/var/private
+      - ./app/www/:/code/app/www
+      - ./app/var/public:/code/app/var/public:ro
+      - ./app/var/private:/code/app/var/private:ro
   backup: {<<: [ *bypass ]}
   {%- if not cookiecutter.remove_cron %}
   cron:

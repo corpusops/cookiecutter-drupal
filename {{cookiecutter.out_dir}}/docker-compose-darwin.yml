@@ -23,8 +23,8 @@ services:
       - ./app/var/public/:/code/app.host/var/public
       # remount a volume from the hyve VM for better IOs
       - osx-app:/code/app
-      - ./app/public/files:/code/app/public/files
-      - ./app/private:/code/app/private
+      - ./app/var/public:/code/app/var/public
+      - ./app/var/private:/code/app/var/private
       - osx-var:/code/app/var
       - osx-cache:/code/app/var/cache
 volumes:
