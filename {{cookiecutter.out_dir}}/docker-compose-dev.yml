@@ -12,6 +12,7 @@ x-images:
       NO_COLLECT_STATIC: "1"
       NO_CACHE_CLEAR: "1"
       NO_COMPOSER: "1"
+      NO_INSTALL: "1"
       ADMIN_PASS: "admin"
     volumes: &{{cookiecutter.app_type}}_volumes
       #- ./local/drupal-deploy-common/sys/sudoer:/etc/sudoers.d/$APP_TYPE

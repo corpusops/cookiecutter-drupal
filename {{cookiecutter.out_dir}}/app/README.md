@@ -7,7 +7,16 @@
 ./control.sh userexec bin/composerinstall
 
 # Lancer les mises à jour du schéma des autres
-./control.sh console doctrine:migrations:migrate --allow-no-migration
+./control.sh userexec bin/postupdate.sh
+```
+
+Sachant que vous pouvez lancer n'importe coommande drush avec:
+
+```sh
+# ou encore
+./control.sh userexec bin/drush sqlq 'SELECT 42'
+# ou encore
+./control.sh drush sqlq 'SELECT 42'
 ```
 
 ## Lancer les tests unitaires

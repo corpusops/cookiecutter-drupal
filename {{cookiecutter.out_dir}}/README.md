@@ -114,7 +114,11 @@ If you launch a `up` action on dev local environement the application is not yet
 ```sh
 ./control.sh up
 ./control.sh userexec bin/composerinstall
-./control.sh drush -y upbd
+./control.sh userexec bin/install.sh
+# or
+./control.sh userexec bin/install.sh
+# and then
+./control.sh userexec bin/post_update.sh
 ```
 
 ## Troubleshoot problems
