@@ -116,7 +116,7 @@ If you launch a `up` action on dev local environement the application is not yet
 ./control.sh userexec bin/composerinstall
 ./control.sh userexec bin/install.sh
 # or
-./control.sh userexec bin/install.sh
+./control.sh userexec DRUPAL_FORCE_INSTALL=1 bin/install.sh
 # and then
 ./control.sh userexec bin/post_update.sh
 ```

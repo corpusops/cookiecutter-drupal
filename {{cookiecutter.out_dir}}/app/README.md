@@ -13,10 +13,9 @@
 Sachant que vous pouvez lancer n'importe coommande drush avec:
 
 ```sh
+./control.sh userexec bin/drush sqlq \'SELECT 42\'
 # ou encore
-./control.sh userexec bin/drush sqlq 'SELECT 42'
-# ou encore
-./control.sh drush sqlq 'SELECT 42'
+./control.sh drush sqlq \'SELECT 42\'
 ```
 
 ## Lancer les tests unitaires
