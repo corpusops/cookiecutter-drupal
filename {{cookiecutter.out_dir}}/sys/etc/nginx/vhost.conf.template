@@ -286,7 +286,7 @@ server {
     }
 
     # hidden directories
-    location ~ (^|/)\. { {
+    location ~ (^|/)\. {
         return 404;
     }
     location = /patches {
