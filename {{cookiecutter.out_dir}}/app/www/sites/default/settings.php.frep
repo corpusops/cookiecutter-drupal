@@ -34,6 +34,7 @@ $databases['default']['default'] = array(
 //$settings['reverse_proxy_addresses'] =
 $settings['update_free_access'] = FALSE;
 $drupal_hash_salt = '{{ '{{ ' }}.Env.APP_SECRET }}';
+$settings['hash_salt'] = $drupal_hash_salt;
 
 /**
  * Vary Cookie: please Read
