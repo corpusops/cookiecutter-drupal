@@ -317,7 +317,7 @@ server {
     }
 
     {% if cookiecutter.with_php_status %}
-    location {{ cookiecutter.nginx_status}} {
+    location {{ cookiecutter.php_status}} {
             fastcgi_split_path_info ^(.+\.php)(/.+)$;
             fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
             fastcgi_param SCRIPT_NAME $fastcgi_script_name;
