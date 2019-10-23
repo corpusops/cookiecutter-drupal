@@ -35,8 +35,8 @@ x-images:
       - ./app:{{cookiecutter.app_path}}
       # remount public/private (named volumes on prod, local remount on dev)
       # on /code/app/public/files and /code/app/private
-      - ./app/var/public:{{cookiecutter.public_files_path}}
-      - ./app/var/private:{{cookiecutter.private_path}}
+      - ./app/var/public:{{cookiecutter.public_files_path}}/
+      - ./app/var/private:{{cookiecutter.private_path}}/
       - ./app/var/cache:{{cookiecutter.cache_path}}
 services:
   db:
@@ -51,9 +51,9 @@ services:
     volumes:
       # remount public/private (named volumes on prod, local remount on dev)
       # on /code/app/var/public (files) and /code/app/var/private
-      - ./app/www/:/code/app/www
-      - ./app/var/public:/code/app/var/public
-      - ./app/var/private:/code/app/var/private
+      - ./app/www/:{{cookiecutter.public_path}}
+      - ./app/var/public:{{cookiecutter.public_files_path}}
+      - ./app/var/private:{{cookiecutter.private_path}}
   backup: {<<: [ *bypass ]}
   {%- if not cookiecutter.remove_cron %}
   cron:

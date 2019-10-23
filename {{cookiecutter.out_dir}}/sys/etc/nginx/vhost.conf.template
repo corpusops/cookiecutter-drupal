@@ -269,7 +269,7 @@ server {
         fastcgi_param   HTTPS                   $fastcgi_ssl_toggle;
         # X-SendFile management
         fastcgi_param  HTTP_X-Sendfile-Type     X-Accel-Redirect;
-        fastcgi_param  HTTP_X-Accel-Mapping    private://=/private-files-x-accel-redirect/,{{ cookiecutter.private_path }}=/private-files-x-accel-redirect/,/tmp/=/tmp-files-x-accel-redirect/;
+        fastcgi_param  HTTP_X-Accel-Mapping    private://=/private-files-x-accel-redirect/,{{ cookiecutter.private_path }}/=/private-files-x-accel-redirect/,/tmp/=/tmp-files-x-accel-redirect/;
         # PHP only, required if PHP was built with --enable-force-cgi-redirect
         fastcgi_param   REDIRECT_STATUS         200;
         # Buffers
@@ -366,7 +366,7 @@ server {
         # With X-Sendfile headers in responses.
         # But a direct access from a browser will launch a 404
         internal;
-        alias {{ cookiecutter.private_path }};
+        alias {{ cookiecutter.private_path }}/;
     }
     location /tmp-files-x-accel-redirect/ {
         internal;

@@ -28,8 +28,8 @@ x-images:
     volumes:
       # - ./sys/crontab:/etc/cron.d/drupal # nope -> chown root done on that file, prefer a COPY, or a template
       - logs:/logs/
-      - publiccontrib:{{cookiecutter.public_files_path}}
-      - private:{{cookiecutter.private_path}}
+      - publiccontrib:{{cookiecutter.public_files_path}}/
+      - private:{{cookiecutter.private_path}}/
       - cache:{{cookiecutter.cache_path}}
       # volume that we need to feed for nginx docker
       - webroot:/code/app/var/nginxwebroot
