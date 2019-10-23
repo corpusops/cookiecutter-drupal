@@ -52,8 +52,8 @@ services:
       # remount public/private (named volumes on prod, local remount on dev)
       # on /code/app/var/public (files) and /code/app/var/private
       - ./app/www/:/code/app/www
-      - ./app/var/public:/code/app/var/public:ro
-      - ./app/var/private:/code/app/var/private:ro
+      - ./app/var/public:/code/app/var/public
+      - ./app/var/private:/code/app/var/private
   backup: {<<: [ *bypass ]}
   {%- if not cookiecutter.remove_cron %}
   cron:

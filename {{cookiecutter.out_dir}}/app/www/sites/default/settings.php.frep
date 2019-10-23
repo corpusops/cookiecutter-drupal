@@ -76,7 +76,7 @@ $config['system.file']['temporary_maximum_age'] = 21600; // in seconds 21600->6h
 // user-group as the group of files in this directory, 'others' do
 // not need anything, so 2770 is good. But a 1st 0 should be added
 // to say it's an octal mode (and do not add quotes)
-$settings['file_chmod_directory']=02770;
+$settings['file_chmod_directory']=02775;
 // default is 0664
 $settings['file_chmod_file']=0664;
 
