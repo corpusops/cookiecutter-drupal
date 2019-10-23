@@ -5,6 +5,7 @@ All following commands must be run only once at project installation.
 ## First clone
 
 ```sh
+# check the remote protocol you may want to choose between http and ssh
 git clone --recursive {{cookiecutter.git_project_url}}
 {%if cookiecutter.use_submodule_for_deploy_code-%}git submodule init # only the fist time
 git submodule update --recursive{%endif%}
