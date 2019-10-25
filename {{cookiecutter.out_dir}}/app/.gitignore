@@ -7,20 +7,6 @@ coverage
 /www/sites/default/local.settings.php
 /www/sites/default/settings.php
 
-# Public files upload directory
-/var/public
-!/var/private/.empty
-# Private files & othe rvar stuff
-/var/private
-/var/nginxwebroot
-/var/tmp
-/var/cache
-!/var/private/.empty
-!/var/cache/.empty
-!/var/tmp/.empty
-!/var/nginxwebroot/.empty
-!/vendor/.empty
-
 # Stuff in web root
 www/web.config
 www/.pot
@@ -31,7 +17,8 @@ www/.pot
 #!/www/.htaccess
 
 /.env
-/vendor/
+/vendor
+!/vendor/.gitignore
 
 .phpunit
 /phpunit.xml
