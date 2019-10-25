@@ -17,8 +17,8 @@ www/.pot
 #!/www/.htaccess
 
 /.env
-/vendor
-!/vendor/.gitignore
+/vendor/
+!/vendor/.empty
 
 .phpunit
 /phpunit.xml
