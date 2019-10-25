@@ -3,8 +3,41 @@
 .settings
 coverage
 
-# {{cookiecutter.app_type.upper()}} local settings
+# {{cookiecutter.app_type.upper()}}  SPECIFIC
+
+# Ignore all core Drupal files.
+/www/*.*
+/www/core
+
+# Ignore contrib files.
+/drush/Commands/contrib/*
+/www/libraries/*
+/www/modules/*
+/www/themes/*
+/www/sites
+
+# Not this one required by drush...
+!/www/autoload.php
+
+# Exceptions inside contrib files (custom code).
+!/www/modules/custom
+!/www/themes/custom
+!/www/libraries/custom
+!/www/monitor*
+
+# even after activating full project versioning in production you will still need
+# to ignore theses files:
+/www/sites/default
+/www/sites/all/README.txt
+/www/sites/example.sites.php
+/www/sites/README.txt
+
+# Exception for the project's profile.
+!/www/profiles/portailweb
+
+# {{cookiecutter.app_type.upper()}}  local settings
 /www/sites/default/local.settings.php
+# {{cookiecutter.app_type.upper()}}  generated settings
 /www/sites/default/settings.php
 
 # Stuff in web root
