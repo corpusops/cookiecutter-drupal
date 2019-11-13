@@ -26,7 +26,7 @@
     User root
     ServerAliveInterval 5
     Port {{cookiecutter.qa_port}}{%endif%}
-    Host {{cookiecutter.prod_host}}
+    {%-if cookiecutter.prod_host %}Host {{cookiecutter.prod_host}}
     User root
     ServerAliveInterval 5
     Port {{cookiecutter.prod_port}}
