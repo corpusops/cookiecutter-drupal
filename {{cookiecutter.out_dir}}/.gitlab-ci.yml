@@ -312,7 +312,7 @@ teardown_env: &teardown_env
   script:
   - .ansible/scripts/call_ansible.sh -vv -l $A_ENV_NAME "${DEPLOY_PLAYBOOK}"
 
-{{devhostdeploycomment}}.deploy_dev: &deploy_dev
+{{devhostdeploycomment}}.deploy_dev_tpl: &deploy_dev_tpl
 {{devhostdeploycomment}}  <<: [ *deploy_tpl ]
 {{devhostdeploycomment}}  when: on_success
 {{devhostdeploycomment}}  variables: &deploy_dev_vars
@@ -324,6 +324,9 @@ teardown_env: &teardown_env
 {{devhostdeploycomment}}  environment:
 {{devhostdeploycomment}}    name: dev
 {{devhostdeploycomment}}    url: https://{{cookiecutter.dev_domain}}
+{{devhostdeploycomment}}
+{{devhostdeploycomment}}deploy_dev:
+{{devhostdeploycomment}}  <<: [ *deploy_dev_tpl ]
 
 {% set cypresscomment = (not cookiecutter.test_cypress) and '#  ' or '' %}
 {{cypresscomment}}e2etests:
@@ -356,7 +359,7 @@ teardown_env: &teardown_env
 # As gitlab-ci does not support pipeline branching, for manual dev release, we need
 # to make a last and one-for-all deploy step for non-blocking pipelines when we do a merge request
 {{devhostdeploycomment}}manual_dev_release_and_deploy: &manual_dev_release_and_deploy
-{{devhostdeploycomment}}  <<: [ *manual_jobs_on_branches_tpl, *deploy_dev, *release_tpl ]
+{{devhostdeploycomment}}  <<: [ *manual_jobs_on_branches_tpl, *deploy_dev_tpl, *release_tpl ]
 {{devhostdeploycomment}}  stage: manual_jobs
 {{devhostdeploycomment}}  when: manual
 {{devhostdeploycomment}}  allow_failure: true
@@ -435,12 +438,12 @@ reconfigure_prod_haproxy_and_fw:
   <<: [ *reconfigure_haproxy_and_firewall_tpl, *deploy_prod ]
 {% endif %}
 {{devhostdeploycomment}}reconfigure_dev_haproxy_and_fw:
-{{devhostdeploycomment}}  <<: [ *reconfigure_haproxy_and_firewall_tpl, *deploy_dev ]
+{{devhostdeploycomment}}  <<: [ *reconfigure_haproxy_and_firewall_tpl, *deploy_dev_tpl ]
 {% endif %}
 # Allow to immediatly trigger a deploy without waiting for the full pipeline to complete
 # eg: redeploying after only issuing a deploy code or configuration change.
 {{devhostdeploycomment}}manual_deploy_dev:
-{{devhostdeploycomment}}  <<: [ *manual_job_tpl, *deploy_dev ]
+{{devhostdeploycomment}}  <<: [ *manual_job_tpl, *deploy_dev_tpl ]
 
 {% if cookiecutter.qa_host -%}
 manual_deploy_qa:
