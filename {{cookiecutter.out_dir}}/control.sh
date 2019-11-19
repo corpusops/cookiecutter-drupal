@@ -516,7 +516,7 @@ do_main() {
     if [[ -n $@ ]];then shift;fi
     set_dc
     case $action in
-        $actions) do_$action $@;;
+        $actions) do_$action "$@";;
         *) do_usage;;
     esac
 }
