@@ -273,7 +273,7 @@ before_script: &top_before_script
   rp="$(pwd)/local/out/docker";
   if ( docker --version >/dev/null 2>&1) && [ "x${UPGRADE_DOCKER}" = "x1" ];then
     docker run --rm -v "${rp}:/out" --entrypoint sh ${DOCKERDIND_IMAGE} -ec 'cp -v /usr/local/bin/docker* /out';
-    cp -fv "${rp}/docker"* /usr/local/bin;docker --version || /bin/true;
+    cp -fv $(ls -1 "${rp}/docker"* | grep -v docker-compose) /usr/local/bin;docker --version || /bin/true;
   fi
 - &linkapt set -e;if [ -e /var/cache/apt ];then rm -rf /var/cache/apt/archives;ln -s ${PROJECT_CACHE_ROOT}/apt /var/cache/apt/archives;fi
 - &settz ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo ${TZ} > /etc/timezone
