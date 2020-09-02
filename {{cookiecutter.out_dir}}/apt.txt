@@ -1,0 +1,45 @@
+apt-transport-https
+bash-completion
+bzip2
+unzip
+software-properties-common
+sudo
+less
+nano
+wget
+curl
+libcurl4
+git
+ca-certificates
+gettext
+tzdata
+gettext
+build-essential
+autoconf
+automake
+xsltproc
+{% if 'post' in cookiecutter.db_mode %}postgresql-client{% endif %}
+{% if 'mysql' in cookiecutter.db_mode %}mysql{{ cookiecutter.db_version }}{% endif %}
+apache2-utils
+unzip
+groff
+openssl
+vim
+lsof
+openssh-client
+libpq-dev
+libjpeg-dev
+libjpeg62-turbo-dev
+libpng-dev
+libicu-dev
+libcurl4-openssl-dev
+libmagickwand-dev --no-install-recommends
+libfreetype6-dev
+libssl-dev
+libtool
+m4
+man-db
+pkg-config
+python
+supervisor
+rsync
