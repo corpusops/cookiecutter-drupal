@@ -1,0 +1,1 @@
+../local/drupal-deploy-common/docs/entry.sh

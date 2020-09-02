@@ -142,7 +142,7 @@ server {
     proxy_buffering off;
     proxy_http_version 1.1;
 
-    root {{ cookiecutter.public_path }};
+    root {{ cookiecutter.public_path }}/;
 
     error_page 502 @maintenance;
     error_page 503 {%if cookiecutter.maintenance_no_503%}=200{% endif %} @maintenance;
@@ -207,6 +207,20 @@ server {
             expires 30d;
             try_files $uri /index.php?$query_string;
         }
+
+        {{'{{'}} if eq .Env.DRUPAL_ENV_NAME "dev"  }}
+        # DEV-ONLY
+        location ~* ^/dev/static/.+\.(?:txt|css|js|jpe?g|gif|htc|ico|png|html|xml|woff|woff2|eot|ttf|svg|pdf|ppt|pptx|doc|docx|xls|xlsx|odt|ods|avi|mp4)$ {
+            try_files $uri /index.php?$query_string;
+        }
+        {{'{{'}} end }}
+
+        {%if not cookiecutter.remove_doc%}
+        # Documentation
+        location ~* ^/admin/documentation/.+\.(?:txt|css|js|jpe?g|gif|htc|ico|png|html|xml|woff|woff2|eot|ttf|svg|pdf|ppt|pptx|doc|docx|xls|xlsx|odt|ods|avi|mp4)$ {
+            try_files $uri /index.php?$query_string;
+        }
+        {% endif %}
 
         # All static files will be served directly.
         location ~* ^.+\.(?:txt|css|js|jpe?g|gif|htc|ico|png|html|xml|woff|woff2|eot|ttf|svg|pdf|ppt|pptx|doc|docx|xls|xlsx|odt|ods|avi|mp4)$ {

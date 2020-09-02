@@ -30,6 +30,7 @@
     "prod_host": "{{cookiecutter.prod_domain.replace('-{0}.'.format(cookiecutter.lname), '-docker-{0}.'.format(cookiecutter.lname))}}",
     "staging_port": "22",
     "remove_fg": "1",
+    "remove_doc": "",
     "remove_cron": "",
     "enable_cron": "",
     "qa_port": "22",

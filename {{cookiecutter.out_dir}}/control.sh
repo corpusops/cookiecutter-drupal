@@ -28,12 +28,13 @@ APP_CONTAINER=${APP_CONTAINER:-${APP}}
 APP_CONTAINERs="^($APP_CONTAINER|celery)"
 DEBUG=${DEBUG-}
 NO_BACKGROUND=${NO_BACKGROUND-}
+FORCE_DARWIN=${FORCE_DARWIN-}
 BUILD_PARALLEL=${BUILD_PARALLEL-1}
-BUILD_CONTAINERS="$APP_CONTAINER {%-if not cookiecutter.remove_fg%} $APP_CONTAINER-fg{%endif%} {%-if not cookiecutter.remove_cron%} cron{%endif%}"
+BUILD_CONTAINERS="$APP_CONTAINER {%-if not cookiecutter.remove_fg%} $APP_CONTAINER-fg{%endif%} {%-if not cookiecutter.remove_cron%} cron{%endif%} {%-if not cookiecutter.remove_doc%} docs{%endif%}"
 EDITOR=${EDITOR:-vim}
 DIST_FILES_FOLDERS=". src/*/settings"
 DEFAULT_CONTROL_COMPOSE_FILES="docker-compose.yml docker-compose-dev.yml"
-if [ "$(uname)" = "Darwin" ];then
+if [ "$(uname)" = "Darwin" ] || [[ -n $FORCE_DARWIN ]];then
     DEFAULT_CONTROL_COMPOSE_FILES="$DEFAULT_CONTROL_COMPOSE_FILES docker-compose-darwin.yml"
 fi
 CONTROL_COMPOSE_FILES="${CONTROL_COMPOSE_FILES:-$DEFAULT_CONTROL_COMPOSE_FILES}"
@@ -411,7 +412,7 @@ do_cypress_run_local() {
 
 #  cypress_run_dev: run cypresse e2e tests on dev server
 do_cypress_run_dev() {
-    do_cypress https://{{cookiecutter.dev_domain}} "$@"
+    do_cypress_run https://{{cookiecutter.dev_domain}} "$@"
 }
 
 #  cypress_open_dev: open cypresse e2e gui on dev server
@@ -482,6 +483,7 @@ do_open_perms_valve() {
         && setfacl -R -m $OPENVALVE_ACL /openvalve'
 }
 
+#  osx_sync: Foreground daemon to sync local files inside docker containers (volumes to be exact)
 do_osx_sync() {
         $DC exec $APP_CONTAINER bash -c "chown -Rf drupal var"
         $DC run --rm -e SHELL_USER=$APP_USER -u $APP_USER $APP_CONTAINER bash -c ": \
@@ -491,16 +493,41 @@ do_osx_sync() {
             if [ 'x'\$do_resync = xv ];then rm -rf vendor/* && do_resync=1;fi \
             && if [ 'x'\$do_resync = x1 ];then bin/composerinstall;fi; } \
         && staticsync() {
-            for i in var/private/ var/public/;do rsync -av --exclude=.env ../app.host/\$i ./\$i;done \
-            && rsync -av --delete --exclude=vendor  --exclude=.env  --exclude=var --exclude=node_modules ../app.host/ ./ \
+            for i in www/ var/private/ var/public/;do \
+                if [ -e ../app.host/\$i ];then \
+                    rsync -av --exclude=.env ../app.host/\$i ./\$i;fi;done \
+            && for i in var/private/docs/;do \
+                if [ -e ../app.host/\$i ];then \
+                    rsync -av --delete ../app.host/\$i ./\$i;fi;done \
+            && rsync -a --delete --exclude files/ www/ var/nginxwebroot/ \
+            && rsync -av --delete \
+                --exclude=vendor  --exclude=.env  --exclude=var \
+                --exclude=www --exclude=node_modules \
+                ../app.host/ ./ \
             && if [ 'x'\$do_resync != x ];then bin/drush cache-rebuild;fi; } \
         && docomposerinstall \
         && staticsync \
         && while true;do \
-            staticsync \
+            if [ 'x'\$do_resync = xb ];then break;fi \
+            && staticsync \
             && docomposerinstall \
-            && printf 'PRESS ENTER TO REFRESH FILES\nv[ENTER] to also refresh vendor (clean & composer/install)\ninput anything else[ENTER] to do an aditionnal cache:clear, without composer install\n? ' \
+            && printf 'PRESS ENTER TO REFRESH FILES\nv[ENTER] to also refresh vendor (clean & composer/install)\nb[ENTER] to abort\ninput anything else[ENTER] to do an aditionnal cache:clear, without composer install\n? ' \
             && read do_resync;done"
+}
+
+#  [NO_BUILD=] do_make_docs: daemon to sync local files inside docker containers (volumes to be exact)
+do_make_docs() {
+    if [[ -z ${NO_BUILD-} ]];then $DCB build docs;fi
+    # by default container entrypoint sync data to output dir
+    $DCB run --rm \
+        -v $(pwd)/docs/_build/:/output \
+        -e NO_BUILD=${NO_BUILD-} \
+        -e NO_INIT=${NO_HTML-} \
+        -e NO_CLEAN=${NO_CLEAN-} \
+        -e SOURCEDIR=${SOURCEDIR-} \
+        -e BUILDDIR=${BUILDDIR-} \
+        -e DEBUG=${DEBUG-} \
+        docs "$@"
 }
 
 do_main() {
@@ -509,7 +536,7 @@ do_main() {
     actions="$actions|yamldump|stop|usershell|exec|userexec|dexec|duserexec|dcompose|ps|psql"
     actions="$actions|init|up|fg|pull|build|buildimages|down|rm|run"
     actions="$actions|cypress_open|cypress_run|cypress_open_local|cypress_open_dev|cypress_run_local|cypress_run_dev"
-    actions_drupal="osx_sync|server|tests|test|tests_debug|test_debug|coverage|drush|linting|console|php"
+    actions_drupal="osx_sync|server|tests|test|tests_debug|test_debug|coverage|drush|linting|console|php|make_docs"
     actions="@($actions|$actions_drupal)"
     action=${1-}
     source_envs

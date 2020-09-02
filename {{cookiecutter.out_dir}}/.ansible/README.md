@@ -121,7 +121,7 @@ You just edit the general vault name, but you can setup secret variables for
 each env this way:
 
 ```sh
-.ansible/scripts/edit_vault .ansible/inventory/group_vars/$A_ENV_NAME/default.yml
+.ansible/scripts/edit_vault.sh .ansible/inventory/group_vars/$A_ENV_NAME/default.yml
 ```
 
 ## <a name="sshdeploysetup"></a>GENERIC ssh setup
