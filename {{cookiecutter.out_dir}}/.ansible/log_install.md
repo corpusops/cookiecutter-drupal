@@ -29,7 +29,7 @@
     {%-if cookiecutter.prod_host %}Host {{cookiecutter.prod_host}}
     User root
     ServerAliveInterval 5
-    Port {{cookiecutter.prod_port}}
+    Port {{cookiecutter.prod_port}}{%endif%}
     ```
 
 ## init local deploy
