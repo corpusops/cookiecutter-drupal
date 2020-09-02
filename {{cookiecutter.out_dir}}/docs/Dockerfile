@@ -1,1 +1,0 @@
-../local/drupal-deploy-common/docs/Dockerfile
