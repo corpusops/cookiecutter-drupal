@@ -89,6 +89,8 @@
     "redis_image": "corpusops/redis:4.0-alpine",
     "nginx_image": "corpusops/nginx:1.14-alpine",
     "user_model": "",
+    "php_user": "{{cookiecutter.app_type}}",
+    "php_group": "{%if cookiecutter.base_os=='centos'%}apache{%else%}www-data{%endif%}",
     "with_php_status": "y",
     "php_status": "/php-status-drupal",
     "with_nginx_status": "y",
