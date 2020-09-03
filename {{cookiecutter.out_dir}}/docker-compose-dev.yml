@@ -60,7 +60,7 @@ services:
     build:
       context: "."
       args:
-        PHP_VER: "${DRUPAL_PHP_VER:-7.2}"
+        PHP_VER: "${PHP_VER:-7.2}"
     <<: [ *bypass ]
     <<: [ *{{cookiecutter.app_type}} ]
   {% endif %}
@@ -68,7 +68,7 @@ services:
     build:
       context: "."
       args:
-        PHP_VER: "${DRUPAL_PHP_VER:-7.2}"
+        PHP_VER: "${PHP_VER:-7.2}"
     <<: [ *{{cookiecutter.app_type}} ]
     environment:
       <<: [ *{{cookiecutter.app_type}}_env ]

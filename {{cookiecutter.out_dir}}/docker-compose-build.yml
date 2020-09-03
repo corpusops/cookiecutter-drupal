@@ -5,7 +5,8 @@ x-images:
     build:
       context: "."
       args:
-        PHP_VER: "${DRUPAL_PHP_VER:-{{cookiecutter.php_ver}}}"
+        PHP_VER: "${PHP_VER:-{{cookiecutter.php_ver}}}"
+        PHP_VER_NO_DOT: "${PHP_VER_NO_DOT:-{{cookiecutter.php_ver|replace('.','')}}}"
 services:
   {%- if not cookiecutter.remove_cron %}
   cron: {<<: [ *{{cookiecutter.app_type}} ]}
