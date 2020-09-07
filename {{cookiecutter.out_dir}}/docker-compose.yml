@@ -116,14 +116,14 @@ services:
   {% endif %}
   backup:
     <<: [ *env ]
-    image: "corpusops/dbsmartbackup:postgres-10"
+    image: "corpusops/dbsmartbackup:postgres-{{cookiecutter.db_version}}"
     restart: always
     volumes:
       - backupdb-dumps:/var/db_smart_backup/
       - backupdb-logs:/var/db_smart_backup/logs/
 {% if db_tag == 'postgres' %}  setup-postgres:
     <<: [ *env ]
-    image: "corpusops/postgres:10"
+    image: "{{cookiecutter["{0}_image".format(cookiecutter.db_mode)]}}"
     depends_on:
     - db
     entrypoint:
