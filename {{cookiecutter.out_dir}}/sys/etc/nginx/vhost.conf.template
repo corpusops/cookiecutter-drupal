@@ -182,6 +182,10 @@ server {
             return 503;
         }
 
+        location ~ ^/mailcatcher/ {
+            proxy_pass http://mailcatcher:8025;
+        }
+
         # Allow "Well-Known URIs" as per RFC 5785
         location ~* ^/.well-known/ {
             allow all;
@@ -369,10 +373,6 @@ server {
     }
     {% endif %}
 
-
-    location ~ ^/mailcatcher/ {
-        proxy_pass http://mailcatcher:8025;
-    }
 
     location /private-files-x-accel-redirect/ {
         # this endpoint is internal, means only an application like
