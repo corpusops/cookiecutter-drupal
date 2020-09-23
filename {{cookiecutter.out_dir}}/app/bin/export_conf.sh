@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+#############################
+# DEPRECATED                #
+#############################
 # Drush cexy wrapper
 # drush cexy, or drush config-export-plus allows finer config yml export
 # --destination : An arbitrary directory that should receive the exported files. An alternative to label argument.

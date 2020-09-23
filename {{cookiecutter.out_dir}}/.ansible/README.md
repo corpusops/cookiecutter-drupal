@@ -226,7 +226,8 @@ The ansible playbook do:
 - Cleanup stale docker volumes
 
 
-## Symfony settings setup
+## Drupal settings setup
+
 To add/modify drupal settings, you specifically need to edit ``.ansible/playbooks/roles/drupal_vars/defaults/main.yml`` for hosted deployments,<br/>
 and adapt certainly one of ``cops_drupal_docker_env_freeform``, ``cops_drupal_docker_env_defaults``, ``cops_drupal_docker_env_extra``.
   - Here, never forget to abuse ansible variables to cut variables from their templates<br/>

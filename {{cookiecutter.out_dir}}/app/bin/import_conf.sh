@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+##############################
+# DEPRECATED                 #
+##############################
 # Drush cimy wrapper
 # drush cimy, or drush config-import-plus allows finer config yml import
 # --preview

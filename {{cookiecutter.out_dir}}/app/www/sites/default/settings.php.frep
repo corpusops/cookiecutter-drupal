@@ -111,9 +111,9 @@ $settings['allow_authorize_operations'] = FALSE;
 
 // D8 config sync directory, better outside webroot than in a random directory in sites/default/files
 $config_directories = array(
-    'staging' => "$root/lib/config/staging",
-    'sync' => "$root/lib/config/sync",
-    'to_dev' => "$root/lib/config/to_dev",
+    'staging' => "$root/config/staging",
+    'sync' => "$root/config/sync",
+    'to_dev' => "$root/config/to_dev",
 );
 
 $settings['install_profile'] = '{{ cookiecutter.lname }}';

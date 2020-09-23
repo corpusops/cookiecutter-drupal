@@ -65,3 +65,4 @@ php-xdebug
 supervisor
 openssl
 rsync
+patch
