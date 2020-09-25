@@ -11,7 +11,6 @@
 {{'{{'}} else }}
 {{'{{'}} $v := merge $v ( dict "noforcessl" ((eq $v.nossl "1") | ternary "0" "1" )) }}
 {{'{{'}} end }}
-{{'{{'}} $v := merge $v ( dict "nostatics"                   ( .Env.NO_STATICS | default "" )                                               ) }}
 {{'{{'}} $v := merge $v ( dict "server_name"                 ( .Env.NGINX_SERVERNAME | default "localhost" )                                ) }}
 {{'{{'}} $v := merge $v ( dict "server_aliases"              ( .Env.NGINX_SERVER_ALIASES | default "" )                                     ) }}
 {{'{{'}} $v := merge $v ( dict "server_name_in_redirect"     ( .Env.NGINX_SERVERNAME_IN_REDIRECT | default "on" )                           ) }}
@@ -167,12 +166,6 @@ server {
     open_file_cache_min_uses 2;
     open_file_cache_errors on;
 
-    {{'{{'}} if not .nostatics }}
-    location {{cookiecutter.statics_uri}}/ {
-        add_header Pragma "cache";
-        add_header Cache-Control "public";
-    }
-    {{'{{'}} end }}
     {{'{{'}} if eq .noforcessl "1"}}# {{'{{'}} end }}if ($forwarded_ssl_scheme != "https"){ rewrite ^(.*)$ https://$host$1 permanent; }
 
     location / {
