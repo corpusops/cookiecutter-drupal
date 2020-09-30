@@ -239,7 +239,7 @@ server {
         # Replicate the Apache <FilesMatch> directive of Drupal standard
         # .htaccess. Disable access to any code files. Return a 404 to curtail
         # information disclosure.
-        location ~* ^(?:.+\.(?:htaccess|yml|yaml|log|make|engine|inc|info|install|module|profile|po|sh|.*sql|theme|twig|tpl(?:\.php)?|xtmpl)|code-style\.pl|/Entries.*|/Repository|/Root|/Tag|/Template|composer\.(json|lock))$ {
+        location ~* ^(?:.+\.(?:htaccess|yml|frep|yaml|log|make|engine|inc|info|install|module|profile|po|sh|.*sql|theme|twig|tpl(?:\.php)?|xtmpl)|code-style\.pl|/Entries.*|/Repository|/Root|/Tag|/Template|composer\.(json|lock))$ {
             return 404;
         }
 
