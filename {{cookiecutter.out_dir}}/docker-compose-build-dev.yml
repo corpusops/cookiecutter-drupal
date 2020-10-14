@@ -3,8 +3,10 @@ x-images:
   {{cookiecutter.app_type}}: &{{cookiecutter.app_type}}
     build: {context: ".", args: {BUILD_DEV: "y"}}
 services:
+  {%-if not cookiecutter.remove_doc%}
+  docs: {<<: [ *{{cookiecutter.app_type}} ]}
+  {%-endif%}
   {%- if not cookiecutter.remove_cron %}
   cron: {<<: [ *{{cookiecutter.app_type}} ]}
   {%-endif%}
   {{cookiecutter.app_type}}: {<<: [ *{{cookiecutter.app_type}} ]}
-

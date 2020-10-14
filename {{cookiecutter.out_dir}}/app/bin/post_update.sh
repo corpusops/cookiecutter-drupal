@@ -13,7 +13,7 @@ Usage: [ASK=yauto] ${WHOAMI}
 
 . "$(dirname "${0}")/base.sh"
 
-check_default_symlink
+check_public_files_symlink
 
 ask "$((QUESTION++))- Do you want to run a drush -y updb ?"
 if [ "xok" = "x${USER_CHOICE}" ]; then

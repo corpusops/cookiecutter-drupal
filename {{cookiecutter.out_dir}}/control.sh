@@ -520,7 +520,6 @@ do_make_docs() {
     if [[ -z ${NO_BUILD-} ]];then $DCB build docs;fi
     # by default container entrypoint sync data to output dir
     $DCB run --rm \
-        -v $(pwd)/docs/_build/:/output \
         -e NO_BUILD=${NO_BUILD-} \
         -e NO_INIT=${NO_HTML-} \
         -e NO_CLEAN=${NO_CLEAN-} \

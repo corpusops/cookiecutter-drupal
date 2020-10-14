@@ -33,6 +33,10 @@ x-images:
       - cache:{{cookiecutter.cache_path}}
       # volume that we need to feed for nginx docker
       - webroot:/code/app/var/nginxwebroot
+      {%-if not cookiecutter.remove_doc%}
+      # host doc dir mounted inside container
+      - ./app/var/private/docs:/code/app/var/private/docs
+      {%endif%}
 services:
   mailcatcher:
     <<: [ *env ]
@@ -85,6 +89,8 @@ services:
       - private:{{cookiecutter.private_path}}:ro
       - logs:/logs/
       - nginx-certs:/certs
+      # Note: docs not mounted in nginx volume, only php (drupal) can serve it
+      # so php can apply security rules on prod access
     command:
       - sh
       - '-ec'

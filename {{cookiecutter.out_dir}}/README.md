@@ -173,6 +173,7 @@ control.sh buildimages
 ```
 
 ## Running heavy session
+
 Like for installing and testing packages without burning them right now in requirements.<br/>
 You will need to add the network alias and maybe stop the django worker
 
@@ -301,7 +302,30 @@ Additionnaly, adding this to ``.vscode/settings.json`` would help to give you a 
 
 FIXME
 
+## Regenerate project doc
+	
+### simple way
+
+We'll use the docker way, you may need to redo a `control.sh build` if your stack
+does not have a doc container yet (message No such service: docs).
+
+Then run:
+
+```bash
+./control.sh make_docs
+```
+
+This will build a temporary docs container, mounting the local directory `/docs/` and `local/` source directories, and reseting your local `app/var/private/docs/` directory content.
+
+So you may need these steps after that:
+
+```bash
+git add -f app/var/private/docs/*/*
+git commit -m "Generate docs" app/var/private/docs/
+```
+
 ## Doc for deployment on environments
+
 - [See here](./docs/README.md)
 
 ## FAQ

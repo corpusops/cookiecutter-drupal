@@ -8,6 +8,15 @@ x-images:
         PHP_VER: "${PHP_VER:-{{cookiecutter.php_ver}}}"
         PHP_VER_NO_DOT: "${PHP_VER_NO_DOT:-{{cookiecutter.php_ver|replace('.','')}}}"
 services:
+  {%-if not cookiecutter.remove_doc%}
+  docs:
+    <<: [ *env, *drupal ]
+    image: "${{'{'}}{{cookiecutter.app_type.upper()}}_IMAGE}:${{'{'}}{{cookiecutter.app_type.upper()}}_IMAGE_VERSION}-dev-docs"
+    build: {context: ".", dockerfile: docs/Dockerfile}
+    volumes:
+    - ./docs:/code/docs.host
+    - ./app:/code/app.host
+  {%-endif%}
   {%- if not cookiecutter.remove_cron %}
   cron: {<<: [ *{{cookiecutter.app_type}} ]}
   {%-endif%}
