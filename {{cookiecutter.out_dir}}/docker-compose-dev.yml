@@ -15,7 +15,7 @@ x-images:
       NO_INSTALL: "1"
       ADMIN_PASS: "admin"
     volumes: &{{cookiecutter.app_type}}_volumes
-      #- ./local/drupal-deploy-common/sys/sudoer:/etc/sudoers.d/$APP_TYPE
+      #- ./local/drupal-deploy-common/sys/sudoer:/etc/sudoers.d/${APP_TYPE:-drupal}
       - ./sys/sbin:/code/sys/sbin/
       {%-if cookiecutter.use_submodule_for_deploy_code %}
       - ./local/drupal-deploy-common/sys/init.sh:/code/sys/init.sh
