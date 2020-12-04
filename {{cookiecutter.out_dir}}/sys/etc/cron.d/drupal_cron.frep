@@ -1,0 +1,3 @@
+MAILTO=""
+# Launching a cron scheduler
+* * * * *   drupal  [ ! -e /code/app/var/private/SUSPEND_CRONS ] && /code/app/bin/drush core:cron

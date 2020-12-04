@@ -29,6 +29,7 @@
         "drupal/console": "^1.0.2",
         "drupal/core": "8.7.0",
         "drupal/paragraphs": "^1.9",
+        "drupal/ultimate_cron": "^2.0@alpha",
         {%if cookiecutter.with_redis%}"drupal/redis": "1.0",{% endif %}
         "drush/drush": "^9.0.0",
         "vlucas/phpdotenv": "^2.4",

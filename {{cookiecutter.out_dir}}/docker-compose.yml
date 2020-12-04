@@ -117,6 +117,7 @@ services:
     environment:
       <<: [ *{{cookiecutter.app_type}}_env ]
       IMAGE_MODE: cron
+      NO_INSTALL: "1"
     depends_on:
     - {{cookiecutter.app_type}}
   {% endif %}
