@@ -67,7 +67,7 @@ $config['automated_cron.settings']['interval'] = 0;
 // File system ////////////////////////////////////////////////////////////////
 $settings['file_public_path'] = 'sites/default/files';
 $settings['file_private_path'] = $root . '/var/private';
-$config['system.file']['path']['temporary'] = $root . '/var/tmp';
+$settings['file_temp_path'] = $root . '/var/tmp';
 $config['system.file']['temporary_maximum_age'] = 21600; // in seconds 21600->6hours
 
 // File system permissions ////////////////////////////////////////////////////
