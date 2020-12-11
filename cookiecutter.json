@@ -34,6 +34,7 @@
     "remove_doc": "",
     "remove_cron": "",
     "enable_cron": "",
+    "remove_varnish": "1",
     "qa_port": "22",
     "dev_port": "22",
     "drupal_project_name": "{{cookiecutter.lname}}",

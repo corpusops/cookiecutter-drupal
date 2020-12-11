@@ -13,5 +13,8 @@ cops_{{cookiecutter.app_type}}_registries:
 - username: "userA"
   registry: "{{cookiecutter.docker_registry}}"
   password: "superpwd"
+{% if not cookiecutter.remove_varnish -%}
+cops_drupal_varnish_nginx_shared_secret: "change_me_please"
+{%- endif %}
 # cops_{{cookiecutter.lname}}_sentry_dsn: ""
 # cops_{{cookiecutter.lname}}_mailcatcher_password: ""

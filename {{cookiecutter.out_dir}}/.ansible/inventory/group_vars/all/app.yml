@@ -14,3 +14,6 @@ cops_{{cookiecutter.app_type}}_docker_env_extra: |-
   {% if 'post' in cookiecutter.db_mode %}POSTGRES_STARTUP_TIMEOUT={{'{{'}}cops_{{cookiecutter.app_type}}_postgres_startup_timeout}}{% endif %}
 cops_drupal_http_protect_user: "root"
 cops_drupal_http_protect_password: "rootroot"
+{% if not cookiecutter.remove_varnish -%}
+cops_drupal_use_varnish: true
+{%- endif %}

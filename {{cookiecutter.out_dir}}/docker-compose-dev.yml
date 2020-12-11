@@ -42,6 +42,11 @@ services:
   db:
     ports:
     - "{{ cookiecutter.local_direct_db_port }}:5432"
+  {%-if not cookiecutter.remove_varnish%}
+  varnish:
+    volumes:
+      - ./sys/etc/varnish/varnish.vcl.frep:/docker/sys/etc/varnish/varnish.vcl.frep
+  {%-endif%}
   nginx:
     environment:
       NO_SSL: "{%if not cookiecutter.ssl_in_dev%}1{%endif%}"

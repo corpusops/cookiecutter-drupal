@@ -9,6 +9,14 @@ x-images:
         PHP_VER_NO_DOT: "${PHP_VER_NO_DOT:-{{cookiecutter.php_ver|replace('.','')}}}"
         COMPOSER_VERSION: "${COMPOSER_VERSION:-{{cookiecutter.composer_ver}}}"
 services:
+
+  {%-if not cookiecutter.remove_varnish%}
+  varnish:
+    <<: [ *env ]
+    build:
+      context: "."
+      dockerfile: "Dockerfile-Varnish"
+  {%-endif%}
   {%-if not cookiecutter.remove_doc%}
   docs:
     <<: [ *env, *drupal ]

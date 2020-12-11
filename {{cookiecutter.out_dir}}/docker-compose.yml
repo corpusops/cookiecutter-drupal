@@ -73,6 +73,19 @@ services:
     image: "{{cookiecutter["{0}_image".format(cookiecutter.db_mode)]}}"
     volumes:
       - postgresql:/var/lib/postgresql/data
+  {%-if not cookiecutter.remove_varnish%}
+  varnish:
+    <<: [ *env ]
+    # image: "corpusops/varnish"
+    image: "${VARNISH_IMAGE}:${VARNISH_IMAGE_VERSION}-dev"
+    depends_on:
+      - nginx
+    links:
+      # for BAN request allow
+      - "cron:cron"
+      # for backend targeting
+      - "nginx:nginx"
+  {%-endif %}
   nginx:
     <<: [ *env ]
     image: "{{cookiecutter.nginx_image}}"

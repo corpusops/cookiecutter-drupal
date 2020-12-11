@@ -1,12 +1,21 @@
 version: '3.7'
 x-{{cookiecutter.app_type}}: &{{cookiecutter.app_type}}
   image: "${{'{'}}{{cookiecutter.app_type.upper()}}_IMAGE}:${{'{'}}{{cookiecutter.app_type.upper()}}_IMAGE_VERSION}"
+{%-if not cookiecutter.remove_varnish%}
+x-varnish: &varnish
+  image: "${VARNISH_IMAGE}:${VARNISH_IMAGE_VERSION}"
+{%-endif %}
 x-images:
   bypass: &bypass
     command: 'sh -c "while true;do echo notstarted;sleep 65000;done"'
     entrypoint: 'sh -c "while true;do echo notstarted;sleep 65000;done"'
     restart: "no"
 services:
+  {%-if not cookiecutter.remove_varnish%}
+  varnish:
+    <<: [ *varnish ]
+    restart: unless-stopped
+  {%-endif%}
   nginx:
     restart: unless-stopped
     ports:

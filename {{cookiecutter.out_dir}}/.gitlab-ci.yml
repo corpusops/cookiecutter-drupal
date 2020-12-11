@@ -31,16 +31,21 @@ variables:
   # services launched during tests
   DOCKER_SERVICES: "db{%if cookiecutter.with_redis %} redis{%endif%} mailcatcher"
   # Those services underlying images will be built
-  DOCKER_BUILT_SERVICES: "{{cookiecutter.app_type}}{%if not cookiecutter.remove_cron%} cron{% endif %}"
+  DOCKER_BUILT_SERVICES: "{{cookiecutter.app_type}}{%if not cookiecutter.remove_cron%} cron{% endif %}{%if not cookiecutter.remove_varnish%} varnish{% endif %}"
   # Main image
   DOCKER_IMAGE: "{{cookiecutter.simple_docker_image}}"
+  {%if not cookiecutter.remove_varnish%}DOCKER_IMAGE_VARNISH: "{{cookiecutter.simple_docker_image}}-varnish"{% endif %}
   # Image with unique identifier
   CURRENT_DOCKER_IMAGE: "${DOCKER_REGISTRY}/${DOCKER_IMAGE}:build-${CI_PIPELINE_IID}"
+  {%if not cookiecutter.remove_varnish%}CURRENT_DOCKER_IMAGE_VARNISH: "${DOCKER_REGISTRY}/${DOCKER_IMAGE_VARNISH}:build-${CI_PIPELINE_IID}"{% endif %}
   # Released image (Targeting master)
   LATEST_DOCKER_IMAGE: "${DOCKER_REGISTRY}/${DOCKER_IMAGE}:latest"
   DEV_DOCKER_IMAGE: "${DOCKER_REGISTRY}/${DOCKER_IMAGE}:dev"
+  {%if not cookiecutter.remove_varnish%}LATEST_DOCKER_IMAGE_VARNISH: "${DOCKER_REGISTRY}/${DOCKER_IMAGE_VARNISH}:latest"{% endif %}
+  {%if not cookiecutter.remove_varnish%}DEV_DOCKER_IMAGE_VARNISH: "${DOCKER_REGISTRY}/${DOCKER_IMAGE_VARNISH}:dev"{% endif %}
   # Released image (Targeting a tag)
   TAGGUED_DOCKER_IMAGE: "${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${CI_COMMIT_REF_NAME}"
+  {%if not cookiecutter.remove_varnish%}TAGGUED_DOCKER_IMAGE_VARNISH: "${DOCKER_REGISTRY}/${DOCKER_IMAGE_VARNISH}:${CI_COMMIT_REF_NAME}"{% endif %}
   # Allow to have many compose stacks aside.
   D_COMPOSE: "docker-compose --verbose -f docker-compose.yml"
   DEPLOY_PLAYBOOK: ".ansible/playbooks/app.yml"
@@ -157,7 +162,7 @@ cleanup_all_project_cache:
 
 build_images: &build_images
   variables: &build_images_vars
-    PRELOAD_IMAGES: "$LATEST_DOCKER_IMAGE $TAGGUED_DOCKER_IMAGE"
+    PRELOAD_IMAGES: "$LATEST_DOCKER_IMAGE $TAGGUED_DOCKER_IMAGE{%if not cookiecutter.remove_varnish%} $LATEST_DOCKER_IMAGE_VARNISH $TAGGUED_DOCKER_IMAGE_VARNISH{% endif %}"
   tags: ["{{cookiecutter.runner_tag}}"]
   stage: build
   script:
@@ -180,6 +185,12 @@ build_images: &build_images
        \"\${CURRENT_DOCKER_IMAGE}-dev\"
        \$(docker history -q \"\${CURRENT_DOCKER_IMAGE}\" | tr '\n' ' ' | tr -d '<missing>')
        \"\${CURRENT_DOCKER_IMAGE}\"
+       {%- if not cookiecutter.remove_varnish %}
+       \$(docker history -q \"\${CURRENT_DOCKER_IMAGE_VARNISH}-dev\" | tr '\n' ' ' | tr -d '<missing>')
+       \"\${CURRENT_DOCKER_IMAGE_VARNISH}-dev\"
+       \$(docker history -q \"\${CURRENT_DOCKER_IMAGE_VARNISH}\" | tr '\n' ' ' | tr -d '<missing>')
+       \"\${CURRENT_DOCKER_IMAGE_VARNISH}\"
+       {%- endif %}
        | gzip > \"\${IMAGES_TARBALL}-pending\"
     && mv -fv \"\${IMAGES_TARBALL}-pending\" \"${IMAGES_TARBALL}\""
 
@@ -237,13 +248,28 @@ build_images: &build_images
   - &release_step2 sh -ec "docker tag \"\$(eval echo \$TO_RELEASE_DOCKER_IMAGE)-dev\"
     \"\$(eval echo \$RELEASED_DOCKER_IMAGE)-dev\"
     && docker tag \"\$(eval echo \$TO_RELEASE_DOCKER_IMAGE)\"
-    \"\$(eval echo \$RELEASED_DOCKER_IMAGE)\""
+    \"\$(eval echo \$RELEASED_DOCKER_IMAGE)\" &&
+    {%- if not cookiecutter.remove_varnish %}
+    && docker tag \"\$(eval echo \$TO_RELEASE_DOCKER_IMAGE_VARNISH)-dev\"
+    \"\$(eval echo \$RELEASED_DOCKER_IMAGE_VARNISH)-dev\"
+    && docker tag \"\$(eval echo \$TO_RELEASE_DOCKER_IMAGE_VARNISH)\"
+    \"\$(eval echo \$RELEASED_DOCKER_IMAGE_VARNISH)\" &&
+    {%- endif %}
+    : \"done\""
   - &release_step3 sh -ec "
     docker push \"\$(eval echo \$RELEASED_DOCKER_IMAGE)-dev\" &&
-    docker push \"\$(eval echo \$RELEASED_DOCKER_IMAGE)\""
+    docker push \"\$(eval echo \$RELEASED_DOCKER_IMAGE)\" &&
+    {%- if not cookiecutter.remove_varnish %}
+    docker push \"\$(eval echo \$RELEASED_DOCKER_IMAGE_VARNISH)-dev\" &&
+    docker push \"\$(eval echo \$RELEASED_DOCKER_IMAGE_VARNISH)\" &&
+    {%- endif %}
+    : \"done\""
   variables: &release_vars
     PRELOAD_IMAGES: ""
     TO_RELEASE_DOCKER_IMAGE: "$CURRENT_DOCKER_IMAGE"
+    {%- if not cookiecutter.remove_varnish %}
+    TO_RELEASE_DOCKER_IMAGE_VARNISH: "$CURRENT_DOCKER_IMAGE_VARNISH"
+    {%- endif %}
 
 release_taggued_imagep: &release_taggued_image
   <<: [ *release_tpl ]
@@ -251,6 +277,9 @@ release_taggued_imagep: &release_taggued_image
   variables:
     <<: [ *release_vars ]
     RELEASED_DOCKER_IMAGE: "$TAGGUED_DOCKER_IMAGE"
+    {%- if not cookiecutter.remove_varnish %}
+    RELEASED_DOCKER_IMAGE_VARNISH: "$TAGGUED_DOCKER_IMAGE_VARNISH"
+    {%- endif %}
 
 release_latest_image: &release_latest_image
   <<: [ *release_tpl ]
@@ -259,6 +288,9 @@ release_latest_image: &release_latest_image
   variables:
     <<: [ *release_vars ]
     RELEASED_DOCKER_IMAGE: "$LATEST_DOCKER_IMAGE"
+    {%- if not cookiecutter.remove_varnish %}
+    RELEASED_DOCKER_IMAGE_VARNISH: "$LATEST_DOCKER_IMAGE_VARNISH"
+    {%- endif %}
 
 # the job will only create a file upon full tests pipeline success
 flag_success_only_on_success:
@@ -366,6 +398,9 @@ teardown_env: &teardown_env
 {{devhostdeploycomment}}  variables:
 {{devhostdeploycomment}}    <<: [ *build_images_vars, *release_vars, *deploy_dev_vars ]
 {{devhostdeploycomment}}    RELEASED_DOCKER_IMAGE: "$DEV_DOCKER_IMAGE"
+{%- if not cookiecutter.remove_varnish %}
+{{devhostdeploycomment}}    RELEASED_DOCKER_IMAGE_VARNISH: "$DEV_DOCKER_IMAGE_VARNISH"
+{%- endif %}
 {{devhostdeploycomment}}  before_script: *top_before_script
 {{devhostdeploycomment}}  script:
 {{devhostdeploycomment}}  - *build_step1
@@ -379,7 +414,7 @@ teardown_env: &teardown_env
 {{devhostdeploycomment}}  - *deploy_key_setup
 {{devhostdeploycomment}}  - &deploy_manual_dev_cmd |-
 {{devhostdeploycomment}}    .ansible/scripts/call_ansible.sh -vv -l $A_ENV_NAME \
-{{devhostdeploycomment}}    "${DEPLOY_PLAYBOOK}" -e "{cops_{{cookiecutter.app_type}}_docker_tag: dev}"
+{{devhostdeploycomment}}    "${DEPLOY_PLAYBOOK}" -e "{cops_{{cookiecutter.app_type}}_docker_tag: dev{% if not cookiecutter.remove_varnish %}, cops_{{cookiecutter.app_type}}_varnish_docker_tag: dev{% endif %}}"
 {{devhostdeploycomment}}manual_dev_deploy_without_release:
 {{devhostdeploycomment}}  <<: [ *manual_dev_release_and_deploy ]
 {{devhostdeploycomment}}  script:
