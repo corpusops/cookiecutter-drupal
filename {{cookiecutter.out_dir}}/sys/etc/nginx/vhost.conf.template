@@ -139,13 +139,13 @@ server {
         proxy_pass http://varnish/;
     }
 
-    {{ end }}
-    {{ template "vhost_proxy" $v }}
+    {{'{{'}} end }}
+    {{'{{'}} template "vhost_proxy" $v }}
 }
 
 map $http_x_mkcp_caesar $varnish_origin_lockdown_failure {
     default "1";
-    "{{ $v.varnish_nginx_secret }}" "0";
+    "{{'{{'}} $v.varnish_nginx_secret }}" "0";
 }
 # BACK HTTP (After varnish, communication with PHP) ------------------------
 {% else %}
