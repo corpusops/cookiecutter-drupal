@@ -245,65 +245,128 @@ Once you have build once your image, you have two options to reuse your image as
 
 ## Integrating an IDE
 
-- <strong>DO NOT START YET YOUR IDE</strong>
-- Add to your .env and re-run ``./control.sh build {{cookiecutter.app_type}}``
-
-    ```sh
-    WITH VISUALCODE=1
-    #  or
-    WITH_PYCHARM=1
-    # note that you can also set the version to install (see .env.dist)
-    ```
-
-- Start the stack, but specially stop the app container as you will
-  have to separatly launch it wired to your ide
-
-    ```sh
-    ./control.sh up
-    ./control.sh down {{cookiecutter.app_type}}
-    ```
-
-### Get the completion and the code resolving for bundled dependencies wich are inside the container
-
-- Whenever you rebuild the image, you need to refresh the files for your IDE to complete bundle dependencies
-
-    ```sh
-    ./control.sh get_container_code
-    ```
 
 ### Using VSCode
 
-FIXME: partie copiée des envs python, à revoir pour PHP...
-
-- You must launch VSCode using ``./control.sh vscode`` as vscode needs to have the ``PHPPATH`` variable preset to make linters work
-
-    ```sh
-    ./control.sh vscode
-    ```
-    - In other words, this add ``local/**/site-packages`` to vscode sys.path.
-
-
-Additionnaly, adding this to ``.vscode/settings.json`` would help to give you a smooth editing experience
+Adding this to ``.vscode/settings.json`` would help to give you a smooth editing experience
 
   ```json
+  {
+  "breadcrumbs.enabled": true,
+  "css.validate": true,
+  "diffEditor.ignoreTrimWhitespace": false,
+  "editor.tabSize": 2,
+  "editor.autoIndent": "full",
+  "editor.insertSpaces": true,
+  "editor.formatOnPaste": true,
+  "editor.formatOnSave": true,
+  "editor.renderControlCharacters": true,
+  "editor.renderWhitespace": "boundary",
+  "editor.wordWrapColumn": 100,
+  "editor.wordWrap": "bounded",
+  "editor.detectIndentation": true,
+  "editor.rulers": [
+    100
+  ],
+  "files.associations": {
+    "*.inc": "php",
+    "*.module": "php",
+    "*.install": "php",
+    "*.theme": "php",
+    "*.tpl.php": "php",
+    "*.test": "php",
+    "*.php": "php",
+    "*.info": "ini",
+    "*.html": "twig"
+  },
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "html.format.enable": true,
+  "html.format.wrapLineLength": 80,
+  "telemetry.enableTelemetry": false,
+
+  /* Empty Indent */
+  "emptyIndent.removeIndent": true,
+  "emptyIndent.highlightIndent": false,
+  "emptyIndent.highlightColor": "rgba(246,36,89,0.6)",
+
+  // Validate --------
+  "php.validate.enable": true,
+  "php.validate.run": "onType",
+
+  // IntelliSense --------
+  "php.suggest.basic": false,
+
+  // Intelephense and Drupal >8 only. This should be set to the path to core/index.php.
+  "intelephense.environment.documentRoot": "app/www/index.php",
+  "intelephense.format.enable": false,
+  "php-docblocker.gap": true,
+  "php-docblocker.useShortNames": true,
+  "emmet.includeLanguages": {
+    "twig": "html"
+  },
+  "files.eol": "\n",
+  }
+```
+
+Adding this to ``.vscode/settings.json`` would help to give you a smooth editing experience
+
+```json
   {
     "files.watcherExclude": {
         "**/.git/objects/**": true,
         "**/.git/subtree-cache/**": true,
         "**/node_modules/*/**": true,
         "**/local/*/**": true,
-        "**/local/code/venv/lib/**/site-packages/**": false
-
       }
   }
-  ```
+```
 
-#### Debugging with VSCode
+### PHPCS Linter
+
+- You need to have `drupal/coder` added in your composer.json.
+
+- In the composer.json, add `phpcs --config-set installed-path ../../drupal/coder/coder_sniffer` in the `post-install-cmd` and `post-update-cmd` `scripts` steps.
+
+Using the **relative path** is **important** to get phpcs working from inside the container (`vendor/bin/phpcs`) and from outside (IDE).
+
+- There is a default phpcs.xml file in app directory, adapt it to your needs (especially the `<file>` sections).
+
+- Add the PHPCS extension (**Not** the one by by Ioannis Kappas, ikappas.phpcs, **use intead the shevaua one**, shavaua.phpcs).
+
+- Alter your `.vscode/settings.json` file
+
+It should contain this part for phpcs:
+
+```json
+{
+  // PHP CS --------
+  "phpcs.enable": true,
+  "phpcs.executablePath": "./app/vendor/squizlabs/php_codesniffer/bin/phpcs",
+  "phpcs.standard": "./app/phpcs.xml",
+  "phpcs.autoConfigSearch": false,
+  "phpcs.lintOnOpen": false,
+  "phpcs.lintOnSave": true,
+  "phpcs.lintOnType": true,
+  "phpcs.lintOnlyOpened": true,
+  "phpcs.showWarnings": true,
+  "phpcs.showSources": true,
+}
+```
+
+As you see phpcs only runs for edited files (with red in the IDE editor and messages in Problems console).
+If you want to check all the files in one call run:
+
+```
+./control.sh userexec "vendor/bin/phpcs --standard=./phpcs.xml"
+```
+
+### Debugging with VSCode
 
 FIXME
 
 ## Regenerate project doc
-	
+
 ### simple way
 
 We'll use the docker way, you may need to redo a `control.sh build` if your stack
