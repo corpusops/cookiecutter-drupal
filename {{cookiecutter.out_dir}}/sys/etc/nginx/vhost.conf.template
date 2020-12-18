@@ -145,7 +145,7 @@ server {
         proxy_set_header Authorization  '';
         proxy_hide_header Authorization;
         proxy_set_header Host internal-$host;
-        proxy_set_header x-mkcp-origin-host $best_http_host;
+        proxy_set_header x-zorg-origin-host $best_http_host;
         proxy_pass http://varnish/;
     }
 
@@ -153,7 +153,7 @@ server {
     {{'{{'}} template "vhost_proxy" $v }}
 }
 
-map $http_x_mkcp_caesar $varnish_origin_lockdown_failure {
+map $http_x_zorg_caesar $varnish_origin_lockdown_failure {
     default "1";
     "{{'{{'}} $v.varnish_nginx_secret }}" "0";
 }
@@ -169,7 +169,7 @@ server {
 
     {%if not cookiecutter.remove_varnish%}
     # Re-do our Host header wich was removed by 1st Vhost and Varnish to use the `internal-<host>` version
-    set $host_ok $http_x_mkcp_origin_host;
+    set $host_ok $http_x_zorg_origin_host;
     {% endif %}
 
     error_log  /logs/drupal-error.log  info;

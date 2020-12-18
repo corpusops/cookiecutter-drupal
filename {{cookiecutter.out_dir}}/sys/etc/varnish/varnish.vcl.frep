@@ -39,8 +39,8 @@ backend backend_drupal_{{'{{'}}  . | replace "." "_"}} {
         .request =
             "GET {{'{{'}}  $v.probe_url }} HTTP/1.1"
             "Host: internal-{{'{{'}}  $v.domain }}"
-            "x-mkcp-origin-host: {{'{{'}}  $v.domain }}"
-            "x-mkcp-caesar: {{'{{'}}  $v.varnish_nginx_secret }}"
+            "x-zorg-origin-host: {{'{{'}}  $v.domain }}"
+            "x-zorg-caesar: {{'{{'}}  $v.varnish_nginx_secret }}"
             "X-SSL: 1"
             "Connection: close"
             "Accept-Encoding: gzip";
@@ -165,7 +165,7 @@ sub vcl_recv {
     {{'{{'}}  end }}
 
     # Caesar secret for communication with internal-* domains on Nginx backends
-    set req.http.x-mkcp-caesar = "{{'{{'}}  $v.varnish_nginx_secret }}";
+    set req.http.x-zorg-caesar = "{{'{{'}}  $v.varnish_nginx_secret }}";
 
     # NORMALIZATION OF ACCEPT-ENCODING HEADER
     # either gzip, then deflate, then none
