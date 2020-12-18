@@ -132,6 +132,16 @@ server {
 
     # SSL -> Nginx -> Varnish -> Nginx-internal:80
     location / {
+
+        location ~ ^/mailcatcher/ {
+            {{'{{'}} if .Env.DRUPAL__HTTP_PROTECT_PASSWORD }}
+            auth_basic off;
+            {{'{{'}} end }}
+            proxy_set_header Authorization  $http_authorization;
+            proxy_pass_header Authorization;
+            proxy_pass http://mailcatcher:8025;
+        }
+
         proxy_set_header Authorization  '';
         proxy_hide_header Authorization;
         proxy_set_header Host internal-$host;
@@ -265,6 +275,9 @@ server {
         }
 
         location ~ ^/mailcatcher/ {
+            {{'{{'}} if .Env.DRUPAL__HTTP_PROTECT_PASSWORD }}
+            auth_basic off;
+            {{'{{'}} end }}
             proxy_pass http://mailcatcher:8025;
         }
 
@@ -416,6 +429,7 @@ server {
     # MONITORING/HEALTH CHECKS
     # access to this file is granted for health-checks (should we restrict IP?)
     location = /monitor-status.php {
+        access_log off;
         root /code/app/www/;
         auth_basic off;
         # ensure gzip/deflate and clear text are stored differently in Varnish

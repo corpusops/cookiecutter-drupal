@@ -149,9 +149,17 @@ sub vcl_recv {
         if ( (! req.http.Authorization ~ "Basic {{'{{'}}  $v.varnish_http_auth }}") && (! req.url ~ "^/monitor-status\.php" )) {
             return(synth(401, "Restricted"));
         }
-        if (req.http.Authorization) {
+        if (req.http.Authorization && (! req.url ~ "^/mailcatcher/") ) {
             # Now varnish will ignore the fact this should not be cacheable (because of http auth)
             # and cache it as if it did not exists
+            # mailcatcher may provides it's own http auth policy, so we keep the header (and prevent caching)
+            unset req.http.Authorization;
+        }
+    {{'{{'}} else }}
+        if (req.http.Authorization && (! req.url ~ "^/mailcatcher/") ) {
+            # Mailcatcher may provides it's own http auth policy, so we keep the header (and prevent caching)
+            # Other authentication may already have been tested by Nginx front, we remove
+            # auth headers and allow caching
             unset req.http.Authorization;
         }
     {{'{{'}}  end }}
