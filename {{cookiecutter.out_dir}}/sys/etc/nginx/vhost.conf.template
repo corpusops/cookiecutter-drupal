@@ -91,7 +91,7 @@ server {
     error_log  /logs/drupal-front-error.log info;
     access_log /logs/drupal-front-access.log custom_combined if=$method_loggable;
 
-    {{'{{'}} define "vhost" }}
+    {{'{{'}} define "vhost_proxy" }}
 
     {{'{{'}} if .Env.DRUPAL__HTTP_PROTECT_PASSWORD }}
     auth_basic            "Restricted";
