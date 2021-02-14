@@ -457,7 +457,7 @@ do_test_debug() {
         NO_UPDB="${NO_UPDB-1}"  \
             do_test "$@"
 }
-do_tess_debug() { do_test_debug "$@"; }
+do_tests_debug() { do_test_debug "$@"; }
 
 
 #  linting: run linting tests
