@@ -43,6 +43,6 @@ Pour exporter la doc sur git
 
    cd /path/to/projet
    ./control.sh make_docs
-   git add -f app/var/private/docs/*/*
-   git commit -m "Generate docs" app/var/private/docs/
+   git add -f app/var/docs/*/*
+   git commit -m "Generate docs" app/var/docs/
 

@@ -390,13 +390,13 @@ Then run:
 ./control.sh make_docs
 ```
 
-This will build a temporary docs container, mounting the local directory `/docs/` and `local/` source directories, and reseting your local `app/var/private/docs/` directory content.
+This will build a temporary docs container, mounting the local directory `/docs/` and `local/` source directories, and reseting your local `app/var/docs/` directory content.
 
 So you may need these steps after that:
 
 ```bash
-git add -f app/var/private/docs/*/*
-git commit -m "Generate docs" app/var/private/docs/
+git add -f app/var/docs/*/*
+git commit -m "Generate docs" app/var/docs/
 ```
 
 ## Doc for deployment on environments

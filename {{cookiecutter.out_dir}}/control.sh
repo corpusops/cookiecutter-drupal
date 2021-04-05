@@ -535,7 +535,7 @@ do_osx_sync() {
             for i in www/ var/private/ var/public/;do \
                 if [ -e ../app.host/\$i ];then \
                     rsync -av --exclude=.env ../app.host/\$i ./\$i;fi;done \
-            && for i in var/private/docs/;do \
+            && for i in var/docs/;do \
                 if [ -e ../app.host/\$i ];then \
                     rsync -av --delete ../app.host/\$i ./\$i;fi;done \
             && rsync -a --delete --exclude files/ www/ var/nginxwebroot/ \

@@ -140,7 +140,7 @@ x-images:
     - webroot:/code/app/var/nginxwebroot
 {% -if not cookiecutter.remove_doc%}
     # host doc dir mounted inside container
-    - ./app/var/private/docs:/code/app/var/private/docs
+    - ./app/var/docs:/code/app/var/docs
 {%-endif%}
     - ./data:/code/data
 services:
