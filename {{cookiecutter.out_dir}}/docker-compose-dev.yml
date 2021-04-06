@@ -33,6 +33,10 @@ x-images:
     # on /code/app/public/files and /code/app/private
     - ./app/var/public:{{cookiecutter.public_files_path}}/
     - ./app/var/private:{{cookiecutter.private_path}}/
+{% -if not cookiecutter.remove_doc%}
+    # host doc dir mounted inside container
+    - ./app/var/docs:/code/app/var/docs
+{%-endif%}
     #- ./app/var/cache:{{cookiecutter.cache_path}}
 services:
   db:
