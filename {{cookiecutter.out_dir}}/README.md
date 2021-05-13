@@ -102,7 +102,8 @@ domains and ports declared in docker.env
 For example if you have:
 
 ```bash
-grep ABSOLUTE docker.env
+/control.sh dcompose config\
+ |docker run -i mikefarah/yq e '.services.drupal.environment' -|grep ABSOLUT
   ABSOLUTE_URL_SCHEME=http
   ABSOLUTE_URL_DOMAIN=foobar.local
   ABSOLUTE_URL_PORT=8009
