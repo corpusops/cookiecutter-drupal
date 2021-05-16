@@ -41,7 +41,7 @@ x-images:
 services:
   db:
     ports:
-    - "{{ cookiecutter.local_direct_db_port }}:5432"
+    - "${DRUPAL_DB_LISTEN:-0.0.0.0}:${DRUPAL_DB_PORT:-{{ cookiecutter.local_direct_db_port }}}:5432"
   {%-if not cookiecutter.remove_varnish%}
   varnish:
     volumes:
@@ -52,7 +52,7 @@ services:
       NO_SSL: "{%if not cookiecutter.ssl_in_dev%}1{%endif%}"
       NO_FORCE_SSL: "{%if not cookiecutter.ssl_in_dev%}1{%endif%}"
     ports:
-    - "{{cookiecutter.local_http_port}}:80"
+    - "${DRUPAL_HTTP_LISTEN:-0.0.0.0}:${DRUPAL_HTTP_PORT:-{{cookiecutter.local_http_port}}}:80"
     volumes:
       # remount public/private (named volumes on prod, local remount on dev)
       # on /code/app/var/public (files) and /code/app/var/private

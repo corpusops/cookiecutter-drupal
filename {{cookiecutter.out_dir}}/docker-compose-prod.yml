@@ -19,12 +19,12 @@ services:
   nginx:
     restart: unless-stopped
     ports:
-    - 80:80
+    - "${DRUPAL_HTTP_LISTEN:-0.0.0.0}:${DRUPAL_HTTP_PORT:-80}:80"
   {{cookiecutter.app_type}}:
     restart: unless-stopped
     <<: [ *{{cookiecutter.app_type}} ]
     ports:
-    - "9000:9000" 
+    - "${DRUPAL_API_LISTEN:-127.0.0.1}:${DRUPAL_API_PORT:-9000}:9000"
   {% if not cookiecutter.remove_cron %}
   cron:
     restart: unless-stopped
