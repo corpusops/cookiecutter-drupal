@@ -105,11 +105,11 @@ For example if you have:
 /control.sh dcompose config\
  |docker run -i mikefarah/yq e '.services.drupal.environment' -|grep ABSOLUT
   ABSOLUTE_URL_SCHEME=http
-  ABSOLUTE_URL_DOMAIN=foobar.local
+  ABSOLUTE_URL_DOMAIN={{cookiecutter.local_domain}}
   ABSOLUTE_URL_PORT=8009
 ```
 
-The project should be reached in http://foobar.local:8009 and foobar.local must resolve to 127.0.0.1.
+The project should be reached in http://{{cookiecutter.local_domain}}:8009 and {{cookiecutter.local_domain}} must resolve to 127.0.0.1.
 
 If you launch a `up` action on dev local environement the application is not yet installed. Shared directories with your local installation, containing things like the *vendors*, are empty, and the database may also be empty. A first test may needs commands like these ones :
 
