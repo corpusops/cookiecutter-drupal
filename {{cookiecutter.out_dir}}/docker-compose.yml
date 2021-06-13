@@ -125,6 +125,7 @@ x-images:
       # host doc dir mounted inside container
       - ./app/var/private/docs:/code/app/var/private/docs
       {%endif%}
+      - ./data:/code/data
 services:
   mailcatcher:
     <<: [ *env ]
@@ -191,6 +192,7 @@ services:
       - private:{{cookiecutter.private_path}}:ro
       - logs:/logs/
       - nginx-certs:/certs
+      - ./data:/code/data
       # Note: docs not mounted in nginx volume, only php (drupal) can serve it
       # so php can apply security rules on prod access
     command:
