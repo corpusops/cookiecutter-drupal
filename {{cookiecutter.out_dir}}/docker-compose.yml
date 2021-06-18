@@ -26,7 +26,7 @@ x-images:
       UPDATE_STATUS_MODULE: "${UPDATE_STATUS_MODULE-0}"
       DRUPAL_NAME: "${DRUPAL_NAME-{{ cookiecutter.drupal_project_name }}}"
       DRUPAL_URI: "${DRUPAL_URI-http://{{cookiecutter.local_domain}}:{{cookiecutter.local_http_port}}}"
-      DRUSH_EXTRA_ARGS: " \"--uri=http://{{cookiecutter.local_domain}}:{{cookiecutter.local_http_port}}}\""
+      DRUSH_EXTRA_ARGS: "${DRUSH_EXTRA_ARGS- --uri=http://{{cookiecutter.local_domain}}:{{cookiecutter.local_http_port}}}"
       # Key settings ------------------
       NGINX_SERVERNAME: "${NGINX_SERVERNAME-{{cookiecutter.local_domain}}}"
       NGINX_SERVER_ALIASES: "${NGINX_SERVER_ALIASES-www.{{cookiecutter.local_domain}} www2.{{cookiecutter.local_domain}}}"
