@@ -8,6 +8,7 @@ stages:
   - release
   - teardown
   - deploy
+  - postdeploy
 
 services: ["docker:dind"]
 
@@ -187,6 +188,7 @@ build_images: &build_images
     if [ -e /docker_images_errors ];then cat /docker_images_errors;exit 1;fi
   - &build_step2 sh -ec "set -x
     && docker inspect \"\${CURRENT_DOCKER_IMAGE}\" >/dev/null
+    {%if not cookiecutter.remove_varnish%}&& docker inspect \"\${CURRENT_DOCKER_IMAGE_VARNISH}\" >/dev/null{%endif %}
     && docker save
        \$(docker history -q \"\${CURRENT_DOCKER_IMAGE}-dev\" | tr '\n' ' ' | tr -d '<missing>')
        \"\${CURRENT_DOCKER_IMAGE}-dev\"
@@ -255,14 +257,14 @@ build_images: &build_images
   - &release_step2 sh -ec "docker tag \"\$(eval echo \$TO_RELEASE_DOCKER_IMAGE)-dev\"
     \"\$(eval echo \$RELEASED_DOCKER_IMAGE)-dev\"
     && docker tag \"\$(eval echo \$TO_RELEASE_DOCKER_IMAGE)\"
-    \"\$(eval echo \$RELEASED_DOCKER_IMAGE)\" &&
+    \"\$(eval echo \$RELEASED_DOCKER_IMAGE)\"
     {%- if not cookiecutter.remove_varnish %}
     && docker tag \"\$(eval echo \$TO_RELEASE_DOCKER_IMAGE_VARNISH)-dev\"
     \"\$(eval echo \$RELEASED_DOCKER_IMAGE_VARNISH)-dev\"
     && docker tag \"\$(eval echo \$TO_RELEASE_DOCKER_IMAGE_VARNISH)\"
-    \"\$(eval echo \$RELEASED_DOCKER_IMAGE_VARNISH)\" &&
+    \"\$(eval echo \$RELEASED_DOCKER_IMAGE_VARNISH)\"
     {%- endif %}
-    : \"done\""
+    && : \"done\""
   - &release_step3 sh -ec "
     docker push \"\$(eval echo \$RELEASED_DOCKER_IMAGE)-dev\" &&
     docker push \"\$(eval echo \$RELEASED_DOCKER_IMAGE)\" &&
@@ -370,7 +372,8 @@ teardown_env: &teardown_env
 {% set cypresscomment = (not cookiecutter.test_cypress) and '#  ' or '' %}
 {{cypresscomment}}e2etests:
 {{cypresscomment}}  tags: ["{{cookiecutter.runner_tag}}"]
-{{cypresscomment}}  stage: deploy
+{{cypresscomment}}  <<: [ *tests_tpl ]
+{{cypresscomment}}  stage: postdeploy
 {{cypresscomment}}  when: manual
 {{cypresscomment}}  only: [master, cypress, tags]
 {{cypresscomment}}  variables:
