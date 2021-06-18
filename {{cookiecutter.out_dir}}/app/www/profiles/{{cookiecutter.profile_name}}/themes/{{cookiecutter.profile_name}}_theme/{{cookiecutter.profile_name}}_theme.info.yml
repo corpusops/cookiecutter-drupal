@@ -1,6 +1,6 @@
 name: {{cookiecutter.name}}
 type: theme
-core: 9.x
+core: 8.x
 base theme: stable
 regions:
   header: 'Top bar'
