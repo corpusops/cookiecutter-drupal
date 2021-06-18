@@ -1,6 +1,6 @@
 {
 
-    "name": "{{cookiecutter.git_ns}}/{{cookiecutter.git_project}}",
+    "name": "{{cookiecutter.git_ns}}/{{cookiecutter.git_project.replace('-', '_')}}",
     "description": "{{ cookiecutter.name }}",
     "type": "project",
     "license": "proprietary",
