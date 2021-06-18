@@ -263,16 +263,14 @@ build_images: &build_images
     \"\$(eval echo \$RELEASED_DOCKER_IMAGE_VARNISH)-dev\"
     && docker tag \"\$(eval echo \$TO_RELEASE_DOCKER_IMAGE_VARNISH)\"
     \"\$(eval echo \$RELEASED_DOCKER_IMAGE_VARNISH)\"
-    {%- endif %}
-    && : \"done\""
+    {%- endif %}"
   - &release_step3 sh -ec "
     docker push \"\$(eval echo \$RELEASED_DOCKER_IMAGE)-dev\" &&
-    docker push \"\$(eval echo \$RELEASED_DOCKER_IMAGE)\" &&
+    docker push \"\$(eval echo \$RELEASED_DOCKER_IMAGE)\"
     {%- if not cookiecutter.remove_varnish %}
-    docker push \"\$(eval echo \$RELEASED_DOCKER_IMAGE_VARNISH)-dev\" &&
-    docker push \"\$(eval echo \$RELEASED_DOCKER_IMAGE_VARNISH)\" &&
-    {%- endif %}
-    : \"done\""
+    && docker push \"\$(eval echo \$RELEASED_DOCKER_IMAGE_VARNISH)-dev\" &&
+    docker push \"\$(eval echo \$RELEASED_DOCKER_IMAGE_VARNISH)\"
+    {%- endif %}"
   variables: &release_vars
     PRELOAD_IMAGES: ""
     TO_RELEASE_DOCKER_IMAGE: "$CURRENT_DOCKER_IMAGE"
