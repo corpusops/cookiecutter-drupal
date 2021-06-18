@@ -15,31 +15,22 @@
         {
             "type": "composer",
             "url": "https://packages.drupal.org/8"
-        },
-        {
-            "type": "git",
-            "url": "https://github.com/previousnext/drush_cmi_tools.git"
         }
     ],
     "require": {
-        "php": ">=7.0.8",
-        "composer/installers": "^1.2",
-        "cweagans/composer-patches": "1.6.5",
-        "drupal-composer/drupal-scaffold": "^2.5",
-        "drupal/console": "^1.0.2",
-        "drupal/core": "8.7.0",
-        "drupal/paragraphs": "^1.9",
+        "php": ">=8.0.0",
+        "composer/installers": "^1.9",
+        "drupal/core-composer-scaffold": "^9.1",
+        "drupal/core-project-message": "^9.1",
+        "drupal/core-recommended": "^9.1"
+        "cweagans/composer-patches": "1.7.1",
         "drupal/ultimate_cron": "^2.0@alpha",
-        {%if cookiecutter.with_redis%}"drupal/redis": "1.0",{% endif %}
-        "drush/drush": "^9.0.0",
-        "vlucas/phpdotenv": "^2.4",
-        "webflo/drupal-finder": "^1.0.0",
-        "webmozart/path-util": "^2.3",
-        "zaporylie/composer-drupal-optimizations": "^1.0.0"
+        {%if cookiecutter.with_redis%}"drupal/redis": "1.5",{% endif %}
+        "drush/drush": "^10.0.0",
+        "vlucas/phpdotenv": "^5.3"
     },
     "require-dev": {
-        "webflo/drupal-core-require-dev": "^8.7.0",
-        "phpunit/phpunit": ">=4.8.28 <5"
+        "drupal/core-dev": "^9.1",
     },
     "conflict": {
         "drupal/drupal": "*"
@@ -81,9 +72,15 @@
             "www/modules/contrib/{$name}": ["type:drupal-module"],
             "www/profiles/contrib/{$name}": ["type:drupal-profile"],
             "www/themes/contrib/{$name}": ["type:drupal-theme"],
-            "drush/Commands/contrib/{$name}": ["type:drupal-drush"]
+            "drush/Commands/contrib/{$name}": ["type:drupal-drush"],
+            "www/modules/custom/{$name}": ["type:drupal-custom-module"],
+            "www/profiles/custom/{$name}": ["type:drupal-custom-profile"],
+            "www/themes/custom/{$name}": ["type:drupal-custom-theme"]
         },
         "drupal-scaffold": {
+            "locations": {
+                "web-root": "www/"
+            },
             "initial": {
                 ".editorconfig": "../.editorconfig",
                 ".gitattributes": "../.gitattributes"

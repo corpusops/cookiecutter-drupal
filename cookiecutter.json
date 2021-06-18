@@ -1,6 +1,6 @@
 {
     "name": "myapp",
-    "php_ver": "7.4",
+    "php_ver": "8.0",
     "composer_ver": "2",
     "base_os": "centos",
     "nginx_in_dev": "y",
