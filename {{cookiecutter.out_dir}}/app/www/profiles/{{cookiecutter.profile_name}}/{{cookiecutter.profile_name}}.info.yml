@@ -34,6 +34,6 @@ dependencies:
   - workflows
 
 themes:
-  - {{cookiecutter.lname}}_theme
+  - {{cookiecutter.profile_name}}_theme
   - bartik
   - seven

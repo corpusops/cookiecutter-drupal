@@ -1,5 +1,5 @@
 {
-  "name": "{{cookiecutter.lname}}_theme",
+  "name": "{{cookiecutter.profile_name}}_theme",
   "version": "1.0.0",
   "description": "Theme of {{cookiecutter.name}}",
   "main": "index.js",

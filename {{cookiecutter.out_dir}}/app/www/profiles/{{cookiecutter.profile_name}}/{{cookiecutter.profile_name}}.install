@@ -11,7 +11,7 @@ use Drupal\user\Entity\User;
 /**
  * Implements hook_schema().
  */
-function {{cookiecutter.lname}}_schema() {
+function {{cookiecutter.profile_name}}_schema() {
   $schema = [];
 
   return $schema;
@@ -24,7 +24,7 @@ function {{cookiecutter.lname}}_schema() {
  *
  * @see system_install()
  */
-function {{cookiecutter.lname}}_install() {
+function {{cookiecutter.profile_name}}_install() {
 
   // Assigns the "administrator" role to user 1.
   $user = User::load(1);
@@ -41,7 +41,7 @@ function {{cookiecutter.lname}}_install() {
  * @param $name
  *   Name of the config file (without the .yml extension)
  */
-function {{cookiecutter.lname}}_install_config($name) {
+function {{cookiecutter.profile_name}}_install_config($name) {
   $storage = new FileStorage(DRUPAL_ROOT . '/../lib/config/install');
   \Drupal::service('config.storage')->write($name, $storage->read($name));
 }

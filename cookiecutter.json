@@ -8,6 +8,7 @@
     "maintenance_no_503": "",
     "git_ns": "{{cookiecutter.name}}-group",
     "lname": "{{cookiecutter.name|lower}}",
+    "profile_name": "{{cookiecutter.lname.replace('-','')}}",
     "out_dir": ".",
     "tld_domain": "example.com",
     "app_type": "drupal",

@@ -1,9 +1,0 @@
-<?php
-
-/**
- * Implements hook_theme().
- */
-function {{cookiecutter.lname}}_theme_theme($existing, $type, $theme, $path) {
-  return [
-  ];
-}

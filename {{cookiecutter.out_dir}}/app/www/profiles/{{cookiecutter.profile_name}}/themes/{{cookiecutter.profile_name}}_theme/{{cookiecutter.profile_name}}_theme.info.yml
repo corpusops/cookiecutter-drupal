@@ -14,5 +14,5 @@ regions:
   page_bottom: 'Page bottom'
 
 libraries:
-  - '{{cookiecutter.lname}}_theme/lato_font'
-  - '{{cookiecutter.lname}}_theme/global'
+  - '{{cookiecutter.profile_name}}_theme/lato_font'
+  - '{{cookiecutter.profile_name}}_theme/global'
