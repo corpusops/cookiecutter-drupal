@@ -22,7 +22,7 @@
         "composer/installers": "^1.9",
         "drupal/core-composer-scaffold": "^9.1",
         "drupal/core-project-message": "^9.1",
-        "drupal/core-recommended": "^9.1"
+        "drupal/core-recommended": "^9.1",
         "cweagans/composer-patches": "1.7.1",
         "drupal/ultimate_cron": "^2.0@alpha",
         {%if cookiecutter.with_redis%}"drupal/redis": "1.5",{% endif %}
