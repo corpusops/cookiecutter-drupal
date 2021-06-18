@@ -264,9 +264,6 @@ server {
     open_file_cache_min_uses 2;
     open_file_cache_errors on;
 
-    # Commented, buggy currently
-    # {{'{{'}} if eq .noforcessl "1"}}# {{'{{'}} end }}if ($forwarded_ssl_scheme != "https"){ rewrite ^(.*)$ https://$host$1 permanent; }
-
     location / {
 
         {%if not cookiecutter.remove_varnish%}
