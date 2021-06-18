@@ -4,9 +4,10 @@ ini_set('session.gc_probability', 1);
 ini_set('session.gc_divisor', 100);
 ini_set('session.gc_maxlifetime', 200000);
 ini_set('session.cookie_lifetime', 2000000);
-$settings['container_yamls'][] = __DIR__ . '/services.yml';
 
-$base_url = '{{ '{{ ' }}.Env.ABSOLUTE_URL_SCHEME }}{{ '{{ ' }}.Env.ABSOLUTE_URL_DOMAIN }}:{{ '{{ ' }}.Env.ABSOLUTE_URL_PORT }}';
+$settings['config_sync_directory'] = "$root/config/sync";
+
+$base_url = '{{ '{{ ' }}.Env.ABSOLUTE_URL_SCHEME }}://{{ '{{ ' }}.Env.ABSOLUTE_URL_DOMAIN }}:{{ '{{ ' }}.Env.ABSOLUTE_URL_PORT }}';
 // this is a hack for drush in site-install mode, overriding base_url with crap,
 // at least you have a copy in variables, if needed
 $conf['base_url'] = $base_url;
@@ -109,14 +110,7 @@ $config['system.performance']['fast_404']['html'] = '<!DOCTYPE html PUBLIC "-//W
 
 $settings['allow_authorize_operations'] = FALSE;
 
-// D8 config sync directory, better outside webroot than in a random directory in sites/default/files
-$config_directories = array(
-    'staging' => "$root/config/staging",
-    'sync' => "$root/config/sync",
-    'to_dev' => "$root/config/to_dev",
-);
-
-$settings['install_profile'] = '{{ cookiecutter.lname }}';
+$settings['install_profile'] = '{{ cookiecutter.profile_name }}';
 
 $localsettingsfile = DRUPAL_ROOT . "/sites/default/local.settings.php";
 if (file_exists($localsettingsfile)) {
