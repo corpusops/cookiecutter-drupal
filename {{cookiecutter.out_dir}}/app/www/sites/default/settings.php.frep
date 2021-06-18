@@ -12,7 +12,7 @@ $base_url = '{{ '{{ ' }}.Env.ABSOLUTE_URL_SCHEME }}{{ '{{ ' }}.Env.ABSOLUTE_URL_
 $conf['base_url'] = $base_url;
 
 // D8 settings to "replace" $base_url configuration in D7 
-$settings['trusted_host_patterns'] = array('^localhost|{{ '{{ ' }} .Env.ABSOLUTE_URL_DOMAIN_ESCAPE }}$');
+$settings['trusted_host_patterns'] = array('^localhost|{{ '{{ ' }} .Env.DRUPAL__ALLOWED_HOSTS }}$');
 
 $databases = array();
 $databases['default']['default'] = array(

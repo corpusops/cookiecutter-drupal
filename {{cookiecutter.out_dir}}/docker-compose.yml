@@ -24,9 +24,15 @@ x-images:
       SITE_DEFAULT_COUNTRY: "${SITE_DEFAULT_COUNTRY-FR}"
       DATE_DEFAULT_TIMEZONE: "${DATE_DEFAULT_TIMEZONE-Europe/Paris}"
       UPDATE_STATUS_MODULE: "${UPDATE_STATUS_MODULE-0}"
+      DRUPAL_NAME: "${DRUPAL_NAME-{{ cookiecutter.drupal_project_name }}}"
       DRUPAL_URI: "${DRUPAL_URI-http://{{cookiecutter.local_domain}}:{{cookiecutter.local_http_port}}}"
       DRUSH_EXTRA_ARGS: " \"--uri=http://{{cookiecutter.local_domain}}:{{cookiecutter.local_http_port}}}\""
       # Key settings ------------------
+      NGINX_SERVERNAME: "${NGINX_SERVERNAME-{{cookiecutter.local_domain}}}"
+      NGINX_SERVER_ALIASES: "${NGINX_SERVER_ALIASES-www.{{cookiecutter.local_domain}} www2.{{cookiecutter.local_domain}}}"
+      DRUPAL__ALLOWED_HOSTS: "${DRUPAL__ALLOWED_HOSTS-{{cookiecutter.local_domain.replace(".","\\\\.")}}|www\\\\.{{cookiecutter.local_domain.replace(".","\\\\.")}}|www2\\\\.{{cookiecutter.local_domain.replace(".","\\\\.")}}}"
+      DRUPAL__HTTP_PROTECT_USER: "${DRUPAL__HTTP_PROTECT_USER-}"
+      DRUPAL__HTTP_PROTECT_PASSWORD: "${DRUPAL__HTTP_PROTECT_PASSWORD-}"
       DATABASE_PREFIX: "${DATABASE_PREFIX-}"
       {% if 'post' in cookiecutter.db_mode %}
       POSTGRES_STARTUP_TIMEOUT: "${POSTGRES_STARTUP_TIMEOUT-45s}"
