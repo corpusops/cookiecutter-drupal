@@ -558,6 +558,6 @@ server {
     {{'{{'}} template "vhost_proxy" $v }}
     {% else %}
     {{'{{'}} template "vhost" $v }}
-    [% endif %}]
+    {% endif %}
 }
 {{'{{'}} end }}
