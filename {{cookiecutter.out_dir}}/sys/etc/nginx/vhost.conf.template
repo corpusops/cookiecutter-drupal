@@ -166,7 +166,7 @@ server {
     listen 80;
     
     {%if not cookiecutter.remove_varnish%}
-    server_name internal-{{'{{'}} $v.server_name }}{{'{{'}}if $v.server_aliases }}{{'{{'}}- range $v.server_aliases | splitList " " }}internal-{{'{{'}} . }}{{'{{'}}- end }}{{'{{'}}end}};
+    server_name internal-{{'{{'}} $v.server_name }}{{'{{'}}if $v.server_aliases }}{{'{{'}}- range $v.server_aliases | splitList " " }} internal-{{'{{'}} . }}{{'{{'}}- end }}{{'{{'}}end}};
     {% else %}
     server_name {{'{{'}} $v.server_name }}{{'{{'}}if $v.server_aliases }} {{'{{'}}$v.server_aliases}}{{'{{'}}end}};
     {% endif %}

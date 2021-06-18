@@ -220,6 +220,8 @@ services:
     environment:
       <<: [ *env_vars ]
       SUPERVISORD_CONFIGS: cron nginx rsyslog
+      NO_SSL: "0"
+      NO_FORCE_SSL: "0"
   {{cookiecutter.app_type}}:
     <<: [ *{{cookiecutter.app_type}} ]
   {%- if not cookiecutter.remove_cron %}
