@@ -18,9 +18,8 @@ vcl 4.1;
 {{'{{-'}} $v := merge $v ( dict "varnish_ttl_static"        ( .Env.VARNISH_TTL_STATIC | default "1h" ) ) -}}
 {{'{{-'}} $v := merge $v ( dict "varnish_ttl_static_client" ( .Env.VARNISH_TTL_STATIC_BROWSER | default "900" ) ) -}}
 {{'{{-'}} $v := merge $v ( dict "varnish_nginx_secret"      ( .Env.VARNISH_NGINX_SHARED_SECRET | default "shared_secret_stuff" ) ) -}}
-{{'{{-'}} $v := merge $v ( dict "varnish_env_mode"          ( .Env.DRUPAL_ENV_NAME | default "prod" ) ) -}}
+{{'{{'}} $v := merge $v ( dict "varnish_env_mode"          ( .Env.DRUPAL_ENV_NAME | default "prod" ) ) }}
 
-# imports
 import directors;
 import std;
 
