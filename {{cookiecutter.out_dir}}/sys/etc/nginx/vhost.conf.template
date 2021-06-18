@@ -251,8 +251,12 @@ server {
         rewrite ^(.*)$ /maintenance.html break;
     }
 
+    {%if cookiecutter.remove_varnish%}
     {{'{{'}} if .noforcessl }}# {{'{{'}}end }}if ($forwarded_ssl_scheme != "https"){ rewrite ^(.*)$ https://$host$1 permanent; }
-
+    {% else %}
+    {{'{{'}} if $v.noforcessl }}# {{'{{'}}end }}if ($forwarded_ssl_scheme != "https"){ rewrite ^(.*)$ https://$host$1 permanent; }
+    {% endif %}
+    
     # static optimisations
     tcp_nodelay off;
     sendfile on;
