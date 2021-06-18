@@ -46,7 +46,6 @@ SYMLINKS_FILES = {
     "docs/entry.sh": "../local/drupal-deploy-common/docs/entry.sh",  #noqa
     "docs/requirements.txt": "../local/drupal-deploy-common/docs/requirements.txt",  #noqa
     "Dockerfile": "{{cookiecutter.deploy_project_dir}}/Dockerfile-{{cookiecutter.base_os}}",  #noqa
-    "Dockerfile-Varnish": "{{cookiecutter.deploy_project_dir}}/Dockerfile-Varnish",  #noqa
 }
 SYMLINKS = {}
 SYMLINKS.update(SYMLINKS_DIRS)
