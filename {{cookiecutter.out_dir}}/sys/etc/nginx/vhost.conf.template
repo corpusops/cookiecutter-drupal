@@ -251,7 +251,7 @@ server {
         rewrite ^(.*)$ /maintenance.html break;
     }
 
-    {{'{{'}} if .noforcessl }}# {{'{{'}} end }}if ($forwarded_ssl_scheme != "https"){ rewrite ^(.*)$ https://$host$1 permanent; }
+    {{'{{'}} if .noforcessl }}# {{'{{'}}end }}if ($forwarded_ssl_scheme != "https"){ rewrite ^(.*)$ https://$host$1 permanent; }
 
     # static optimisations
     tcp_nodelay off;
