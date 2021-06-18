@@ -120,7 +120,7 @@ If you launch a `up` action on dev local environement the application is not yet
 # or
 ./control.sh userexec DRUPAL_FORCE_INSTALL=1 bin/install.sh
 # or even, if you do not have any config exported yet
-./control.sh userexec NO_EXISTING_CONFIG DRUPAL_FORCE_INSTALL=1 bin/install.sh
+./control.sh userexec NO_EXISTING_CONFIG=1 DRUPAL_FORCE_INSTALL=1 bin/install.sh
 # and then
 ./control.sh userexec bin/post_update.sh
 ```

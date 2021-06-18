@@ -34,6 +34,12 @@ fi
 # Manually drop tables because drush site-install is an idiot
 call_drush sql-drop -y
 
+if [ ! -z ${NO_EXISTING_CONFIG} ]; then
+  existing_conf=""
+else
+  existing_conf="--existing-config"
+fi
+
 # First install (no exported conf), use the real profile
 settings_folder_write_fix
 chmod u+rw "${WWW_DIR}/sites/default/settings.php"
@@ -45,7 +51,7 @@ verbose_call_drush site-install -v -y \
     --site-mail="${SITE_MAIL}" \
     --site-name="${SITE_NAME}" \
     --sites-subdir="${SITES_SUBDIR}" \
-    --existing-config \
+    $existing_conf \
     --debug \
     "${PROFILE_NAME}" \
     install_configure_form.enable_update_status_emails=NULL \

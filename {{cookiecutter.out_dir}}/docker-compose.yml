@@ -14,7 +14,7 @@ x-images:
       # parsed/replaced in CI via env-subst
       DRUPAL_NAME: "${DRUPAL_NAME-{{cookiecutter.drupal_project_name}}}"
       # Used in INSTALL ---------------
-      PROFILE_NAME: "${PROFILE_NAME-{{ cookiecutter.lname }}}"
+      PROFILE_NAME: "${PROFILE_NAME-{{ cookiecutter.profile_name }}}"
       SITE_NAME: "${SITE_NAME-{{ cookiecutter.name }}}"
       SITE_MAIL: "${SITE_MAIL-contact@{{ cookiecutter.mail_domain }}}"
       ADMIN_MAIL: "${ADMIN_MAIL-sysadmin+{{ cookiecutter.lname }}@{{ cookiecutter.mail_domain }}}"
