@@ -46,6 +46,7 @@ services:
   varnish:
     volumes:
       - ./sys/etc/varnish/varnish.vcl.frep:/docker/sys/etc/varnish/varnish.vcl.frep
+      - ./local/drupal-deploy-common/sys/varnish.sh:/varnish.sh
   {%-endif%}
   nginx:
     environment:

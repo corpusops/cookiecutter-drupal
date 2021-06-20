@@ -34,6 +34,7 @@ SYMLINKS_FILES = {
     ".ansible/scripts/setup_ansible.sh": "cops_wrapper.sh",  #noqa
     ".ansible/playbooks/ping.yml": "../../{{cookiecutter.deploy_project_dir}}/.ansible/playbooks/ping.yml",  #noqa
     ".ansible/playbooks/app.yml": "../../{{cookiecutter.deploy_project_dir}}/.ansible/playbooks/app.yml",  #noqa
+    ".ansible/playbooks/teleport.yml": "../../{{cookiecutter.deploy_project_dir}}/.ansible/playbooks/teleport.yml",  #noqa
     ".ansible/playbooks/deploy_key_setup.yml":
     "../../{{cookiecutter.deploy_project_dir}}/.ansible/playbooks/deploy_key_setup.yml",  #noqa
     ".ansible/playbooks/deploy_key_teardown.yml":
@@ -45,6 +46,7 @@ SYMLINKS_FILES = {
     "docs/entry.sh": "../local/drupal-deploy-common/docs/entry.sh",  #noqa
     "docs/requirements.txt": "../local/drupal-deploy-common/docs/requirements.txt",  #noqa
     "Dockerfile": "{{cookiecutter.deploy_project_dir}}/Dockerfile-{{cookiecutter.base_os}}",  #noqa
+    "Dockerfile-Varnish": "{{cookiecutter.deploy_project_dir}}/Dockerfile-Varnish",  #noqa
 }
 SYMLINKS = {}
 SYMLINKS.update(SYMLINKS_DIRS)
@@ -177,4 +179,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-# vim:set et sts=4 ts=4 tw=80:
+# vim:set et sts=4 ts=4 tw=0:
