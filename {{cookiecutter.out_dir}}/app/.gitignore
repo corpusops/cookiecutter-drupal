@@ -14,7 +14,6 @@ coverage
 /www/libraries/*
 /www/modules/*
 /www/themes/*
-/www/sites
 
 # Not this one required by drush...
 !/www/autoload.php
@@ -25,16 +24,13 @@ coverage
 !/www/libraries/custom
 !/www/monitor*
 
-# even after activating full project versioning in production you will still need
-# to ignore theses files:
-/www/sites/default
 /www/sites/all/README.txt
 /www/sites/example.sites.php
 /www/sites/README.txt
+/www/profiles/README.txt
 
-# Exception for the project's profile.
-!/www/profiles/portailweb
-
+/www/sites/default/files
+/www/sites/example.settings.local.php
 # {{cookiecutter.app_type.upper()}}  local settings
 /www/sites/default/local.settings.php
 # {{cookiecutter.app_type.upper()}}  generated settings
