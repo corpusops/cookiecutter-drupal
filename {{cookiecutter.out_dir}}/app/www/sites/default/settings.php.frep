@@ -110,8 +110,6 @@ $config['system.performance']['fast_404']['html'] = '<!DOCTYPE html PUBLIC "-//W
 
 $settings['allow_authorize_operations'] = FALSE;
 
-$settings['install_profile'] = '{{ cookiecutter.profile_name }}';
-
 $localsettingsfile = DRUPAL_ROOT . "/sites/default/local.settings.php";
 if (file_exists($localsettingsfile)) {
   include_once($localsettingsfile);
