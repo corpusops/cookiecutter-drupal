@@ -439,7 +439,7 @@ do_test() {
         $APP_CONTAINER -ec ": \
             && export DRUPAL_ENV_NAME=test \
             && export XDEBUG_CONFIG=\"${XDEBUG_CONFIG-}\" \
-            && export NO_COMPOSER=\"${NO_COMPOSER-1}\" \
+            && export NO_COMPOSER=\"${NO_COMPOSER-}\" \
             && export NO_UPDB=\"${NO_UPDB-}\" \
             && export NO_COLLECT_STATIC=\"${NO_COLLECT_STATIC-}\" \
             && export NO_STARTUP_LOGS=\"${NO_STARTUP_LOGS-1}\" \
@@ -453,7 +453,7 @@ do_tests() { do_test_debug $@; }
 do_test_debug() {
     init_x_debug_config 1
     NO_COLLECT_STATIC="${NO_COLLECT_STATIC-1}" \
-        NO_COMPOSER=${NO_COMPOSER-1} \
+        NO_COMPOSER=${NO_COMPOSER-} \
         NO_UPDB="${NO_UPDB-1}"  \
             do_test "$@"
 }
