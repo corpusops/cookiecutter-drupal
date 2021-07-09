@@ -43,6 +43,8 @@ ask "$((QUESTION++))- Do you want to run a configuration import (drush cim)?"
 if [ "xok" = "x${USER_CHOICE}" ]; then
     echo "${YELLOW}  - So we run drush -y cim ${NORMAL}"
     call_drush -y config:import
+    echo "${YELLOW}  - And we run run it a second time, because.. Drupal${NORMAL}"
+    call_drush -y config:import
 fi
 
 ask "$((QUESTION++))- Rebuild all caches via drush?"
