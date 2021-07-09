@@ -175,17 +175,6 @@ NO_STARTUP_LOG=
 control.sh buildimages
 ```
 
-## Running heavy session
-
-Like for installing and testing packages without burning them right now in requirements.<br/>
-You will need to add the network alias and maybe stop the django worker
-
-```sh
-./control.sh stop {{cookiecutter.app_type}}
-services_ports=1 ./control.sh usershell
-./manage.py runserserver 0.0.0.0:8000
-```
-
 ## Calling drush & console commands
 
 ```sh
@@ -408,6 +397,6 @@ If you get the same problem with the {{cookiecutter.app_type}} docker env :
 docker-compose -f docker-compose.yml -f docker-compose-dev.yml stop {{cookiecutter.app_type}} db
 docker volume rm ICIUnNom-postgresql # check with docker volume ls
 docker-compose -f docker-compose.yml -f docker-compose-dev.yml up -d db
-# wait fot database stuff to be installed
+# wait for database stuff to be installed
 docker-compose -f docker-compose.yml -f docker-compose-dev.yml up {{cookiecutter.app_type}}
 ```
