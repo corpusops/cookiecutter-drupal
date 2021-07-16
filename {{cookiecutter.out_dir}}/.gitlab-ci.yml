@@ -278,7 +278,7 @@ build_images: &build_images
 
 release_taggued_imagep: &release_taggued_image
   <<: [ *release_tpl ]
-  only: [tags, dev, qa, staging, prod
+  only: [tags, dev, qa, staging, prod]
   variables:
     <<: [ *release_vars ]
     RELEASED_DOCKER_IMAGE: "$TAGGUED_DOCKER_IMAGE"
@@ -347,9 +347,6 @@ teardown_env: &teardown_env
 {{cypresscomment}}    # NEVER let this stuff fill the gitlab disks !
 {{cypresscomment}}    expire_in: 4 hours
 
-# manual rebuild on any branch except master or tags , no filter
-# and the according deploy job
-# implicitly the deploy job on the branch will auto-deploy the manually built image
 .manual_jobs_on_branches_tpl: &manual_jobs_on_branches_tpl
   only: [branches, triggers, web, api, schedules]
   except: [master, tags]
@@ -439,9 +436,9 @@ deploy_prod: &deploy_prod
 # As gitlab-ci does not support pipeline branching, for manual dev release, we need
 # to make a last and one-for-all deploy step for non-blocking pipelines when we do a merge request
 manual_release_and_deploy: &manual_release_and_deploy
-  <<: [ *manual_jobs_tpl, *deploy_tpl, *release_tpl ]
+  <<: [ *manual_job_tpl, *deploy_tpl, *release_tpl ]
   variables: &manual_release_and_deploy_vars
-    <<: [ *build_images_vars, *release_vars, *deploy_dev_vars ]
+    <<: [ *build_images_vars, *release_vars, *deploy_vars ]
   before_script: *top_before_script
   script:
   - *force_release_vars
@@ -461,11 +458,11 @@ manual_deploy_without_release: &manual_deploy_without_release
   variables:
     <<: [ *manual_release_and_deploy_vars ]
     PRELOAD_TARBALLS: ""
- script:
- - *force_release_vars
- - *deploy_setup
- - *deploy_key_setup
- - *call_ansible_deploy
+  script:
+  - *force_release_vars
+  - *deploy_setup
+  - *deploy_key_setup
+  - *call_ansible_deploy
 
 {%- if cookiecutter.haproxy %}
 .reconfigure_haproxy_and_fw: &reconfigure_haproxy_and_firewall_tpl
