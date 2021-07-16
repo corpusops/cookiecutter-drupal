@@ -29,9 +29,9 @@ A chaque fois que je commite, si j'ai fais des modifications dans la configurati
 
 .. code-block:: sh
 
-    ./control.sh userexec bin/export_conf.sh
+    ./control.sh userexec bin/drush cex
 
-.. warning:: Je ne commite **que** les modifations dans les fichiers de configuration qui concernent ma fonctionnanlité et je checkout les autres.
+.. warning:: Je ne commite **que** les modifications dans les fichiers de configuration qui concernent ma fonctionnanlité et je checkout les autres.
 
 .. note:: Je commence le nom de mon commit par le numéro de mon ticket comme ça : `issue #121 - `
 
