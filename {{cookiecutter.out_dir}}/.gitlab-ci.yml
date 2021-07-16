@@ -41,9 +41,7 @@ variables:
   {%if not cookiecutter.remove_varnish%}CURRENT_DOCKER_IMAGE_VARNISH: "${DOCKER_REGISTRY}/${DOCKER_IMAGE_VARNISH}:build-${CI_PIPELINE_IID}"{% endif %}
   # Released image (Targeting master)
   LATEST_DOCKER_IMAGE: "${DOCKER_REGISTRY}/${DOCKER_IMAGE}:latest"
-  DEV_DOCKER_IMAGE: "${DOCKER_REGISTRY}/${DOCKER_IMAGE}:dev"
   {%if not cookiecutter.remove_varnish%}LATEST_DOCKER_IMAGE_VARNISH: "${DOCKER_REGISTRY}/${DOCKER_IMAGE_VARNISH}:latest"{% endif %}
-  {%if not cookiecutter.remove_varnish%}DEV_DOCKER_IMAGE_VARNISH: "${DOCKER_REGISTRY}/${DOCKER_IMAGE_VARNISH}:dev"{% endif %}
   # Released image (Targeting a tag)
   TAGGUED_DOCKER_IMAGE: "${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${CI_COMMIT_REF_NAME}"
   {%if not cookiecutter.remove_varnish%}TAGGUED_DOCKER_IMAGE_VARNISH: "${DOCKER_REGISTRY}/${DOCKER_IMAGE_VARNISH}:${CI_COMMIT_REF_NAME}"{% endif %}
@@ -55,7 +53,7 @@ variables:
   REFERENCE_MASTER_IMAGES_TARBALL: "/cache/$CI_PROJECT_PATH_SLUG/docker-images/$MASTER_BRANCH.gz"
   PRELOAD_TARBALLS: "1"
   # To speed up all builds we may cache in Controls which branch is used to generate image cache tarball
-  CACHE_BUILD_FOR_BRANCH_REGEX: "^(master)$"
+  CACHE_BUILD_FOR_BRANCH_REGEX: "^(master|dev|qa|staging|prod)$"
   MASTER_BRANCH: master
   CACHE_DAYS: "7"
   # Path to CI success flag marker
@@ -143,7 +141,7 @@ before_script: &top_before_script
   allow_failure: true
   stage: manual_jobs
   when: manual
-  only: [master, tags]
+  only: [master, dev, qa, staging, prod]
   except: []
 
 cleanup_all_expired_build_artefacts_from_cache:
@@ -280,7 +278,7 @@ build_images: &build_images
 
 release_taggued_imagep: &release_taggued_image
   <<: [ *release_tpl ]
-  only: [tags]
+  only: [tags, dev, qa, staging, prod
   variables:
     <<: [ *release_vars ]
     RELEASED_DOCKER_IMAGE: "$TAGGUED_DOCKER_IMAGE"
@@ -327,46 +325,6 @@ teardown_env: &teardown_env
   - &teardown_step3 rm -fv ${IMAGES_TARBALL}* "${SUCCESS_FLAG}"
   - *cleanup_all_expired_build_artefacts_from_cache
 
-.deploy_tpl: &deploy_tpl
-  tags: ["{{cookiecutter.runner_tag}}"]
-  stage: deploy
-  when: manual
-  allow_failure: false
-  variables: &deploy_vars_tpl
-    NONINTERACTIVE: "1"
-    DEPLOY_PLAYBOOK: ".ansible/playbooks/app.yml"
-    NO_SILENT: ""
-  before_script:
-{%-if cookiecutter.use_submodule_for_deploy_code%}
-  - *pullsubmodules
-{%endif%}
-  # make this in only one block to be easily reusable in deploy jobs
-  - &deploy_setup set -e;vv(){ echo "$@">&2;"$@"; };
-    if [ "x${A_ENV_NAME}" = x ];then
-    echo "\$A_ENV_NAME is not set, bailing out" >&2 ;exit 1;fi;
-    vv .ansible/scripts/download_corpusops.sh;
-    vv .ansible/scripts/setup_ansible.sh;
-  - &deploy_key_setup set -e;vv(){ echo "$@">&2;"$@"; };vv
-    .ansible/scripts/call_ansible.sh -vv .ansible/playbooks/deploy_key_setup.yml
-  script:
-  - .ansible/scripts/call_ansible.sh -vv -l $A_ENV_NAME "${DEPLOY_PLAYBOOK}"
-
-{{devhostdeploycomment}}.deploy_dev_tpl: &deploy_dev_tpl
-{{devhostdeploycomment}}  <<: [ *deploy_tpl ]
-{{devhostdeploycomment}}  when: on_success
-{{devhostdeploycomment}}  variables: &deploy_dev_vars
-{{devhostdeploycomment}}    <<: [ *deploy_vars_tpl ]
-{{devhostdeploycomment}}    A_ENV_NAME: dev
-{{devhostdeploycomment}}  only: [master, tags]
-{{devhostdeploycomment}}  script:
-{{devhostdeploycomment}}  - .ansible/scripts/call_ansible.sh -vv -l $A_ENV_NAME "${DEPLOY_PLAYBOOK}"
-{{devhostdeploycomment}}  environment:
-{{devhostdeploycomment}}    name: dev
-{{devhostdeploycomment}}    url: https://{{cookiecutter.dev_domain}}
-{{devhostdeploycomment}}
-{{devhostdeploycomment}}deploy_dev:
-{{devhostdeploycomment}}  <<: [ *deploy_dev_tpl ]
-
 {% set cypresscomment = (not cookiecutter.test_cypress) and '#  ' or '' %}
 {{cypresscomment}}e2etests:
 {{cypresscomment}}  tags: ["{{cookiecutter.runner_tag}}"]
@@ -396,76 +354,118 @@ teardown_env: &teardown_env
   only: [branches, triggers, web, api, schedules]
   except: [master, tags]
 
-# As gitlab-ci does not support pipeline branching, for manual dev release, we need
-# to make a last and one-for-all deploy step for non-blocking pipelines when we do a merge request
-{{devhostdeploycomment}}manual_dev_release_and_deploy: &manual_dev_release_and_deploy
-{{devhostdeploycomment}}  <<: [ *manual_jobs_on_branches_tpl, *deploy_dev_tpl, *release_tpl ]
-{{devhostdeploycomment}}  stage: manual_jobs
-{{devhostdeploycomment}}  when: manual
-{{devhostdeploycomment}}  allow_failure: true
-{{devhostdeploycomment}}  variables:
-{{devhostdeploycomment}}    <<: [ *build_images_vars, *release_vars, *deploy_dev_vars ]
-{{devhostdeploycomment}}    RELEASED_DOCKER_IMAGE: "$DEV_DOCKER_IMAGE"
-{%- if not cookiecutter.remove_varnish %}
-{{devhostdeploycomment}}    RELEASED_DOCKER_IMAGE_VARNISH: "$DEV_DOCKER_IMAGE_VARNISH"
-{%- endif %}
-{{devhostdeploycomment}}  before_script: *top_before_script
-{{devhostdeploycomment}}  script:
-{{devhostdeploycomment}}  - *build_step1
-{{devhostdeploycomment}}  - *release_step1
-{{devhostdeploycomment}}  - *release_step2
-{{devhostdeploycomment}}  - *release_step3
-{{devhostdeploycomment}}  - *teardown_step1
-{{devhostdeploycomment}}  - *teardown_step2
-{{devhostdeploycomment}}  - *teardown_step3
-{{devhostdeploycomment}}  - *deploy_setup
-{{devhostdeploycomment}}  - *deploy_key_setup
-{{devhostdeploycomment}}  - &deploy_manual_dev_cmd |-
-{{devhostdeploycomment}}    .ansible/scripts/call_ansible.sh -vv -l $A_ENV_NAME \
-{{devhostdeploycomment}}    "${DEPLOY_PLAYBOOK}" -e "{cops_{{cookiecutter.app_type}}_docker_tag: dev{% if not cookiecutter.remove_varnish %}, cops_{{cookiecutter.app_type}}_varnish_docker_tag: dev{% endif %}}"
-{{devhostdeploycomment}}manual_dev_deploy_without_release:
-{{devhostdeploycomment}}  <<: [ *manual_dev_release_and_deploy ]
-{{devhostdeploycomment}}  script:
-{{devhostdeploycomment}}  - *deploy_setup
-{{devhostdeploycomment}}  - *deploy_key_setup
-{{devhostdeploycomment}}  - *deploy_manual_dev_cmd
+.deploy_tpl: &deploy_tpl
+  tags: ["{{cookiecutter.runner_tag}}"]
+  stage: deploy
+  when: manual
+  allow_failure: false
+  variables: &deploy_vars
+    NONINTERACTIVE: "1"
+    DEPLOY_PLAYBOOK: ".ansible/playbooks/app.yml"
+    NO_SILENT: ""
+    A_ENV_NAME: "$CI_COMMIT_REF_NAME"
+  before_script:
+  - &force_release_vars |-
+      if [ "x${CI_COMMIT_REF_NAME}" = "xmaster" ];then
+        export A_ENV_NAME=dev
+        export RELEASED_DOCKER_IMAGE=$LATEST_DOCKER_IMAGE
+        {%- if not cookiecutter.remove_varnish %}
+        export RELEASED_DOCKER_IMAGE_VARNISH=$LATEST_DOCKER_IMAGE_VARNISH
+        {%- endif %}
+      else
+        export A_ENV_NAME=$CI_COMMIT_REF_NAME
+        export RELEASED_DOCKER_IMAGE=TAGGUED_DOCKER_IMAGE
+        {%- if not cookiecutter.remove_varnish %}
+        export RELEASED_DOCKER_IMAGE_VARNISH=$TAGGUED_DOCKER_IMAGE_VARNISH
+        {%- endif %}
+      fi
+{%-if cookiecutter.use_submodule_for_deploy_code%}
+  - *pullsubmodules
+{%endif%}
+  # make this in only one block to be easily reusable in deploy jobs
+  - &deploy_setup set -e;vv(){ echo "$@">&2;"$@"; };
+    if [ "x${A_ENV_NAME}" = x ];then
+    echo "\$A_ENV_NAME is not set, bailing out" >&2 ;exit 1;fi;
+    vv .ansible/scripts/download_corpusops.sh;
+    vv .ansible/scripts/setup_ansible.sh;
+  - &deploy_key_setup set -e;vv(){ echo "$@">&2;"$@"; };vv
+    .ansible/scripts/call_ansible.sh -vv .ansible/playbooks/deploy_key_setup.yml
+  script:
+  - echo
+  - &call_ansible_deploy |-
+      # do not remove yaml inline (gitlab parse problem)
+      set -e
+      .ansible/scripts/call_ansible.sh -vv -l $A_ENV_NAME "${DEPLOY_PLAYBOOK}" -e "{cops_drupal_gitref: $CI_COMMIT_REF_NAME}"
+
+{{devhostdeploycomment}}deploy_dev:
+{{devhostdeploycomment}}  <<: [ *deploy_tpl ]
+{{devhostdeploycomment}}  only: [master, dev, tags]
+{{devhostdeploycomment}}  when: on_success
+{{devhostdeploycomment}}  variables: &deploy_dev_vars
+{{devhostdeploycomment}}    <<: [ *deploy_vars ]
+{{devhostdeploycomment}}    A_ENV_NAME: dev
+{{devhostdeploycomment}}  environment:
+{{devhostdeploycomment}}    name: dev
+{{devhostdeploycomment}}    url: "https://{{cookiecutter.dev_domain}}"
 
 {% if cookiecutter.qa_host -%}
 deploy_qa: &deploy_qa
   <<: [ *deploy_tpl ]
-  only: [tags, master]
-  variables:
-    <<: [ *deploy_vars_tpl ]
-    A_ENV_NAME: qa
+  only: [qa, tags]
   environment:
     name: qa
-    url: https://{{cookiecutter.qa_domain}}
-
+    url: "https://{{cookiecutter.qa_domain}}"
 {% endif -%}
+
 {%- if cookiecutter.staging_host -%}
 deploy_staging: &deploy_staging
   <<: [ *deploy_tpl ]
-  only: [tags, master]
-  variables:
-    <<: [ *deploy_vars_tpl ]
-    A_ENV_NAME: staging
+  only: [staging, tags]
   environment:
     name: staging
-    url: https://{{cookiecutter.staging_domain}}
-
+    url: "https://{{cookiecutter.staging_domain}}"
 {%endif-%}
 
 {% if cookiecutter.prod_host -%}
 deploy_prod: &deploy_prod
   <<: [ *deploy_tpl ]
-  only: [tags, master]
-  variables:
-    <<: [ *deploy_vars_tpl ]
-    A_ENV_NAME: prod
+  only: [prod, tags]
   environment:
     name: prod
-    url: https://{{cookiecutter.prod_domain}}
+    url: "https://{{cookiecutter.prod_domain}}"
 {% endif -%}
+
+
+# As gitlab-ci does not support pipeline branching, for manual dev release, we need
+# to make a last and one-for-all deploy step for non-blocking pipelines when we do a merge request
+manual_release_and_deploy: &manual_release_and_deploy
+  <<: [ *manual_jobs_tpl, *deploy_tpl, *release_tpl ]
+  variables: &manual_release_and_deploy_vars
+    <<: [ *build_images_vars, *release_vars, *deploy_dev_vars ]
+  before_script: *top_before_script
+  script:
+  - *force_release_vars
+  - *build_step1
+  - *release_step1
+  - *release_step2
+  - *release_step3
+  - *teardown_step1
+  - *teardown_step2
+  - *teardown_step3
+  - *deploy_setup
+  - *deploy_key_setup
+  - *call_ansible_deploy
+
+manual_deploy_without_release: &manual_deploy_without_release
+  <<: [ *manual_release_and_deploy ]
+  variables:
+    <<: [ *manual_release_and_deploy_vars ]
+    PRELOAD_TARBALLS: ""
+ script:
+ - *force_release_vars
+ - *deploy_setup
+ - *deploy_key_setup
+ - *call_ansible_deploy
 
 {%- if cookiecutter.haproxy %}
 .reconfigure_haproxy_and_fw: &reconfigure_haproxy_and_firewall_tpl
@@ -483,23 +483,3 @@ reconfigure_prod_haproxy_and_fw:
 {{devhostdeploycomment}}reconfigure_dev_haproxy_and_fw:
 {{devhostdeploycomment}}  <<: [ *reconfigure_haproxy_and_firewall_tpl, *deploy_dev_tpl ]
 {% endif %}
-# Allow to immediatly trigger a deploy without waiting for the full pipeline to complete
-# eg: redeploying after only issuing a deploy code or configuration change.
-{{devhostdeploycomment}}manual_deploy_dev:
-{{devhostdeploycomment}}  <<: [ *manual_job_tpl, *deploy_dev_tpl ]
-
-{% if cookiecutter.qa_host -%}
-manual_deploy_qa:
-  <<: [ *manual_job_tpl, *deploy_qa ]
-
-{% endif -%}
-{%- if cookiecutter.staging_host -%}
-manual_deploy_staging:
-  <<: [ *manual_job_tpl, *deploy_staging ]
-
-{% endif -%}
-
-{% if cookiecutter.prod_host -%}
-manual_deploy_prod:
-  <<: [ *manual_job_tpl, *deploy_prod ]
-{% endif -%}
