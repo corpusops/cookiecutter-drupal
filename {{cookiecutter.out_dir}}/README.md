@@ -385,6 +385,19 @@ git commit -m "Generate docs" app/var/private/docs/
 
 ## FAQ
 
+### View environments values & secrets
+
+All env specific data is stored in `.ansible/inventory/<env>/clear.yml`, with shared variables defaults in `.ansible/inventory/all/clear.yml`, and defaults not defined here are defined in other ansible yml like `local/drupal-deploy-common/.ansible/playbooks/roles/drupal_vars/defaults/main.yml`.
+
+For secret variables (`.ansible/inventory/<env>/default.yml`)  you will need the VAULT PASSWORD, stored in Bitwarden. Then:
+
+.. code:: sh
+
+    export A_ENV_NAME=prod # or dev, preprod, etc.
+    .ansible/scripts/edit_vault.sh
+
+### Nginx always restarting
+
 If you get troubles with the nginx docker env restarting all the time, try recreating it :
 
 ```bash
