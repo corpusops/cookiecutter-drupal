@@ -389,7 +389,7 @@ git commit -m "Generate docs" app/var/private/docs/
 
 All env specific data is stored in `.ansible/inventory/<env>/clear.yml`, with shared variables defaults in `.ansible/inventory/all/clear.yml`, and defaults not defined here are defined in other ansible yml like `local/drupal-deploy-common/.ansible/playbooks/roles/drupal_vars/defaults/main.yml`.
 
-For secret variables (`.ansible/inventory/<env>/default.yml`)  you will need the VAULT PASSWORD, stored in Bitwarden. Then:
+For secret variables (`.ansible/inventory/<env>/default.yml`) you will need the VAULT PASSWORD, stored in Bitwarden. Then:
 
 .. code:: sh
 
