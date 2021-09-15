@@ -52,6 +52,7 @@ services:
   {%-endif%}
   nginx:
     environment:
+      <<: [ *drupal_env ]
       NO_SSL: "{%if not cookiecutter.ssl_in_dev%}1{%else%}0{%endif%}"
       NO_FORCE_SSL: "{%if not cookiecutter.ssl_in_dev%}1{%endif%}"
     ports:
