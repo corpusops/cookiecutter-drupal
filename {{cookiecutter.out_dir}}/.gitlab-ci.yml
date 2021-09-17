@@ -445,7 +445,7 @@ deploy_staging_reset:
 {%endif-%}
 
 {% if cookiecutter.prod_host -%}
-deploy_prod: &deploy_prod
+deploy_prod: &deploy_prod_tpl
   <<: [ *deploy_tpl ]
   only: [prod, tags]
   environment:
@@ -496,7 +496,7 @@ manual_deploy_without_release: &manual_deploy_without_release
 
 {% if cookiecutter.prod_host -%}
 reconfigure_prod_haproxy_and_fw:
-  <<: [ *reconfigure_haproxy_and_firewall_tpl, *deploy_prod ]
+  <<: [ *reconfigure_haproxy_and_firewall_tpl, *deploy_prod_tpl ]
 {% endif %}
 {{devhostdeploycomment}}reconfigure_dev_haproxy_and_fw:
 {{devhostdeploycomment}}  <<: [ *reconfigure_haproxy_and_firewall_tpl, *deploy_dev_tpl ]
