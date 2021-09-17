@@ -45,6 +45,9 @@ if [ "xok" = "x${USER_CHOICE}" ]; then
     call_drush -y config:import
     echo "${YELLOW}  - And we run run it a second time, because.. Drupal${NORMAL}"
     call_drush -y config:import
+    if [ "x${?}" = "x1" ]; then
+        bad_exit "Failure in the drush cim step (upgrade configuration), please check the previous lines for details."
+    fi
 fi
 
 ask "$((QUESTION++))- Rebuild all caches via drush?"
