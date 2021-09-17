@@ -397,7 +397,7 @@ teardown_env: &teardown_env
       set -e
       .ansible/scripts/call_ansible.sh -vv -l $A_ENV_NAME "${DEPLOY_PLAYBOOK}" -e "{cops_drupal_gitref: $CI_COMMIT_REF_NAME}"
 
-{{devhostdeploycomment}}deploy_dev:
+{{devhostdeploycomment}}deploy_dev: &deploy_dev_tpl
 {{devhostdeploycomment}}  <<: [ *deploy_tpl ]
 {{devhostdeploycomment}}  only: [master, dev, tags]
 {{devhostdeploycomment}}  when: on_success
@@ -407,23 +407,41 @@ teardown_env: &teardown_env
 {{devhostdeploycomment}}  environment:
 {{devhostdeploycomment}}    name: dev
 {{devhostdeploycomment}}    url: "https://{{cookiecutter.dev_domain}}"
-
+{{devhostdeploycomment}}deploy_dev_reset:
+{{devhostdeploycomment}}  <<: [ *deploy_dev_tpl ]
+{{devhostdeploycomment}}  when: manual
+{{devhostdeploycomment}}  variables:
+{{devhostdeploycomment}}    <<: [ *deploy_dev_vars ]
+{{devhostdeploycomment}}    DRUPAL_FORCE_INSTALL: 1
+{{devhostdeploycomment}}    A_ENV_NAME: dev
 {% if cookiecutter.qa_host -%}
-deploy_qa: &deploy_qa
+deploy_qa: &deploy_qa_tpl
   <<: [ *deploy_tpl ]
   only: [qa, tags]
   environment:
     name: qa
     url: "https://{{cookiecutter.qa_domain}}"
+deploy_qa_reset:
+  <<: [ *deploy_qa_tpl ]
+  when: manual
+  variables:
+    <<: [ *deploy_vars ]
+    DRUPAL_FORCE_INSTALL: 1
 {% endif -%}
 
 {%- if cookiecutter.staging_host -%}
-deploy_staging: &deploy_staging
+deploy_staging: &deploy_staging_tpl
   <<: [ *deploy_tpl ]
   only: [staging, tags]
   environment:
     name: staging
     url: "https://{{cookiecutter.staging_domain}}"
+deploy_staging_reset:
+  <<: [ *deploy_staging_tpl ]
+  when: manual
+  variables:
+    <<: [ *deploy_vars ]
+    DRUPAL_FORCE_INSTALL: 1
 {%endif-%}
 
 {% if cookiecutter.prod_host -%}
