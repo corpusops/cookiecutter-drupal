@@ -47,6 +47,8 @@ services:
     - "${DRUPAL_DB_LISTEN:-0.0.0.0}:${DRUPAL_DB_PORT:-{{ cookiecutter.local_direct_db_port }}}:5432"
   {%-if not cookiecutter.remove_varnish%}
   varnish:
+    environment:
+      DRUPAL_ENV_NAME: "${DRUPAL_ENV_NAME-dev}"
     volumes:
       - ./local/drupal-deploy-common/sys/varnish.sh:/varnish.sh
   {%-endif%}
