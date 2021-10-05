@@ -89,6 +89,10 @@ types {
     text/cache-manifest                   appcache;
 }
 
+{{if (eq .Env.DRUPAL_ENV_NAME "prod" ) }}
+server_tokens off;
+{{ end }}
+
 {{'{{'}}if and (eq $v.redirect_aliases "1" ) ( $v.server_aliases ) }}
 # REDIRECT ALIASES VHOSTS -----------
 server {
