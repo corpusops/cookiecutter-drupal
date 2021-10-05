@@ -490,6 +490,8 @@ sub vcl_deliver {
     unset resp.http.X-Varnish-Cacheable;
     unset resp.http.X-Varnish-TTL;
     unset resp.http.X-Varnish;
+    unset resp.http.X-Generator;
+    unset resp.http.Via;
     {{'{{-'}} end }}
     unset resp.http.X-Ban-Path;
     unset resp.http.X-Ban-Purge-Tags;
