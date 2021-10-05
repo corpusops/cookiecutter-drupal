@@ -82,6 +82,13 @@ map $http_x_forwarded_host $best_http_host {
     ''               $this_host;
 }
 
+# Add some brand new mime types
+types {
+    application/manifest+json             webmanifest;
+    application/x-web-app-manifest+json   webapp;
+    text/cache-manifest                   appcache;
+}
+
 {{'{{'}}if and (eq $v.redirect_aliases "1" ) ( $v.server_aliases ) }}
 # REDIRECT ALIASES VHOSTS -----------
 server {
