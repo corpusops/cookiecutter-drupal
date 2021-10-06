@@ -69,6 +69,7 @@ acl ban_agents {
     "localhost";
     {{'{{-'}} range $v.backends | splitList " " }}
     "{{'{{'}} . }}";
+    "drupal";
     "cron";
     {{'{{-'}} end }}
 }

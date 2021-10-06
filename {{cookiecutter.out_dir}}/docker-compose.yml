@@ -187,6 +187,7 @@ services:
     links:
       # for BAN request allow
       - "cron:cron"
+      - "drupal:drupal"
       # for backend targeting
       - "nginx:nginx"
   {%-endif %}
