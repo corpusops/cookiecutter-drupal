@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Project Deployment script
 QUESTION=0
-VERSION=3.0
+VERSION=3.1
 EXPLAIN="Manage project deployment"
 WHOAMI=`basename $0`;
 USAGE="--${WHOAMI} : v${VERSION} --
@@ -21,30 +21,30 @@ if [ "xok" = "x${USER_CHOICE}" ]; then
     call_drush -y updb
 fi
 
-# TODO: regilero check d8
-# echo
-# echo "${YELLOW}check if acl rebuild is needed...${NORMAL}"
-# RES=`call_drush vget node_access_needs_rebuild`
-# if [ "xnode_access_needs_rebuild: 1" == "x${RES}" ] || [ "xnode_access_needs_rebuild: true" == "x${RES}" ]; then
-#     echo "${YELLOW}...yes${NORMAL}"
-#     call_drush -y node-access-rebuild
-#     call_drush vset node_access_needs_rebuild 0
-# else
-#     echo "${YELLOW}...no${NORMAL}"
-# fi
-
 ask "$((QUESTION++))- Rebuild all caches via drush?"
 if [ "x${USER_CHOICE}" = "xok" ]; then
   call_drush -y cache:rebuild
 fi
 echo "${NORMAL}"
 
+if [ "x${ASK}" == "xyauto" ]; then
+    FORCE="-y "
+else
+    FORCE=""
+fi
 ask "$((QUESTION++))- Do you want to run a configuration import (drush cim)?"
 if [ "xok" = "x${USER_CHOICE}" ]; then
-    echo "${YELLOW}  - So we run drush -y cim ${NORMAL}"
-    call_drush -y config:import
+    echo "${YELLOW}  - first we run drush -y cim --partial sync (to let drush cim update the config_ignore exception list before removing the partial option -- which prevents deletions)${NORMAL}"
+    call_drush ${FORCE} config:import --partial
     echo "${YELLOW}  - And we run run it a second time, because.. Drupal${NORMAL}"
-    call_drush -y config:import
+    call_drush ${FORCE} config:import --partial
+    if [ "x${?}" = "x1" ]; then
+        bad_exit "Failure in the 'drush cim --partial' step (upgrade configuration), please check the previous lines for details."
+    fi
+    echo "${YELLOW}  - And now we remove the --partial option, to perform deletions${NORMAL}"
+    call_drush ${FORCE} config:import
+    echo "${YELLOW}  - And we run run it a second time, because.. Drupal${NORMAL}"
+    call_drush ${FORCE} config:import
     if [ "x${?}" = "x1" ]; then
         bad_exit "Failure in the drush cim step (upgrade configuration), please check the previous lines for details."
     fi
