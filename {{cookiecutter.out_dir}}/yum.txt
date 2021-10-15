@@ -15,7 +15,7 @@ gettext
 gcc
 gcc-c++
 make
-libxslt-1.1
+libxslt
 {% if 'post' in cookiecutter.db_mode %}postgresql{{ cookiecutter.db_version }}{% endif %}
 {% if 'mysql' in cookiecutter.db_mode %}mysql{% endif %}
 logrotate
