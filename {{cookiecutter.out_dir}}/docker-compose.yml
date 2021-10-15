@@ -242,7 +242,7 @@ services:
 {% endif %}
   backup:
     <<: [ *env ]
-    image: "corpusops/dbsmartbackup:postgres-{{cookiecutter.db_version}}"
+    image: "corpusops/dbsmartbackup:{{cookiecutter.db_tag}}-{{cookiecutter.db_version}}"
     restart: always
     volumes:
       - backupdb-dumps:/var/db_smart_backup/
@@ -284,12 +284,8 @@ services:
       flag=/started_$$(echo $$MYSQL_DATABASE|sed -re "s![/:]!__!g")
       if [ -e "$$flag" ];then rm -f "$$flag";fi
       echo "Try connection to mysql: $$MYSQL_DATABASE & wait for db init" >&2 \
-      && export MYSQL_PWD=$${MYSQL_PASSWORD} \
-      && export MYSQL_TCP_PORT=$${MYSQL_PORT} \
-      && export MYSQL_HOST=$${MYSQL_HOST} \
-      && export USER=$${MYSQL_USER} \
       && ( while true;do if ( \
-        mysql -e "select "11111"| grep "11111" \
+        mysql -h $${MYSQL_HOST} -u $${MYSQL_USER} --password="$${MYSQL_PASSWORD}" -P $${MYSQL_PORT} -e "select 11111" $$MYSQL_DATABASE| grep "11111" \
       );then touch $$flag && break;fi;done )&
       set -x \
       && dockerize -wait file://$$flag -timeout 45s \
