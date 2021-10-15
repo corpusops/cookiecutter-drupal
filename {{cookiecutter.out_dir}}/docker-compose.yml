@@ -174,6 +174,12 @@ services:
     <<: [ *env ]
     image: "{{cookiecutter["{0}_image".format(cookiecutter.db_mode)]}}"
     volumes:
+    {% if db_tag == 'mysql' %}
+      - mysql:/var/lib/mysql
+    {% endif -%}
+    {% if db_tag == 'postgres' %}
+      - postgresql:/var/lib/postgresql/data
+    {% endif -%}
       - postgresql:/var/lib/postgresql/data
   {%-if not cookiecutter.remove_varnish%}
   varnish:
@@ -264,10 +270,40 @@ services:
       && dockerize -wait file://$$flag -timeout 45s \
       && while true;do printf "HTTP/1.1 200 OK\n\nstarted"| ( nc -l -p 80 || /bin/true);done
 {% endif %}
+{% if db_tag == 'mysql' %}  setup-mysql:
+    <<: [ *env ]
+    image: "{{cookiecutter["{0}_image".format(cookiecutter.db_mode)]}}"
+    depends_on:
+    - db
+    entrypoint:
+    - /bin/sh
+    - '-c'
+    - |-
+      set -ex
+      MYSQL_STARTUP_TIMEOUT=$${MYSQL_STARTUP_TIMEOUT-45s}
+      flag=/started_$$(echo $$MYSQL_DATABASE|sed -re "s![/:]!__!g")
+      if [ -e "$$flag" ];then rm -f "$$flag";fi
+      echo "Try connection to mysql: $$MYSQL_DATABASE & wait for db init" >&2 \
+      && export MYSQL_PWD=$${MYSQL_PASSWORD} \
+      && export MYSQL_TCP_PORT=$${MYSQL_PORT} \
+      && export MYSQL_HOST=$${MYSQL_HOST} \
+      && export USER=$${MYSQL_USER} \
+      && ( while true;do if ( \
+        mysql -e "select "11111"| grep "11111" \
+      );then touch $$flag && break;fi;done )&
+      set -x \
+      && dockerize -wait file://$$flag -timeout 45s \
+      && while true;do printf "HTTP/1.1 200 OK\n\nstarted"| ( nc -l -p 80 || /bin/true);done
+{% endif %}
 volumes:
   backupdb-logs:
   backupdb-dumps:
+{% if db_tag == 'mysql' %}
+  mysql:
+{% endif -%}
+{% if db_tag == 'postgres' %}
   postgresql:
+{% endif -%}
 {%if cookiecutter.with_redis%}  redis:{%endif%}
   nginx-certs:
   webroot:
