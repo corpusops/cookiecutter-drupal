@@ -6,15 +6,8 @@ x-images:
       context: "."
       args: &args
         BUILDKIT_INLINE_CACHE: "1"
-        {%if cookiecutter.base_os=='centos'%}
-        BASE: "${DRUPAL_BASE_IMAGE:-{{cookiecutter.ubuntu_image}}}"
-        {% endif -%}
-        {%if cookiecutter.base_os=='debian'%}
-        BASE: "${DRUPAL_BASE_IMAGE:-{{cookiecutter.debian_image}}}"
-        {% endif -%}
-        {%if cookiecutter.base_os=='centos'%}
-        BASE: "${DRUPAL_BASE_IMAGE:-{{cookiecutter.centos_image}}}"
-        {% endif -%}
+        BASE: "${DRUPAL_BASE_IMAGE:-corpusops/ubuntu-bare:20.04}"
+        # BASE: "${DRUPAL_BASE_IMAGE:-{{cookiecutter.debian_image}}}"
         PHP_VER: "${PHP_VER:-{{cookiecutter.php_ver}}}"
         PHP_GROUP: "${PHP_GROUP-apache}"
         PHP_VER_NO_DOT: "${PHP_VER_NO_DOT:-{{cookiecutter.php_ver|replace('.','')}}}"
