@@ -176,11 +176,10 @@ services:
     volumes:
     {% if db_tag == 'mysql' %}
       - mysql:/var/lib/mysql
-    {% endif -%}
+    {% endif %}
     {% if db_tag == 'postgres' %}
       - postgresql:/var/lib/postgresql/data
-    {% endif -%}
-      - postgresql:/var/lib/postgresql/data
+    {% endif %}
   {%-if not cookiecutter.remove_varnish%}
   varnish:
     <<: [ *env ]
