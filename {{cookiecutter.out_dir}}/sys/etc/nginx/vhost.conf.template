@@ -357,7 +357,7 @@ server {
             return 503;
         }
 
-        {{'{{'}} if eq $v.has_mailcatcher "1" }}
+        {{'{{'}} if eq .has_mailcatcher "1" }}
         location ~ ^/mailcatcher/ {
             {{'{{'}} if .Env.DRUPAL__HTTP_PROTECT_PASSWORD }}
             auth_basic off;
