@@ -173,11 +173,15 @@ services:
   db:
     <<: [ *env ]
     image: "{{cookiecutter["{0}_image".format(cookiecutter.db_mode)]}}"
-    volumes:
     {% if db_tag == 'mysql' %}
+    environment:
+      <<: [ *env_vars ]
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-${MYSQL_PASSWORD:-password}}"
+    volumes:
       - mysql:/var/lib/mysql
     {% endif %}
     {% if db_tag == 'postgres' %}
+    volumes:
       - postgresql:/var/lib/postgresql/data
     {% endif %}
   {%-if not cookiecutter.remove_varnish%}
