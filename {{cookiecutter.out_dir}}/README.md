@@ -102,7 +102,7 @@ domains and ports declared in docker.env
 For example if you have:
 
 ```bash
-/control.sh dcompose config\
+./control.sh dcompose config\
  |docker run -i mikefarah/yq e '.services.drupal.environment' -|grep ABSOLUT
   ABSOLUTE_URL_SCHEME=http
   ABSOLUTE_URL_DOMAIN={{cookiecutter.local_domain}}

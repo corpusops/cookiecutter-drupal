@@ -17,17 +17,14 @@ gcc-c++
 make
 libxslt-1.1
 {% if 'post' in cookiecutter.db_mode %}postgresql{{ cookiecutter.db_version }}{% endif %}
-{% if 'mysql' in cookiecutter.db_mode %}mysql{{ cookiecutter.db_version }}{% endif %}
+{% if 'mysql' in cookiecutter.db_mode %}mysql{% endif %}
 logrotate
 unzip
 autoconf
 automake
-groff
 libtool
 m4
 poppler-utils
-python-imaging
-python-setuptools
 vim
 lsof
 php

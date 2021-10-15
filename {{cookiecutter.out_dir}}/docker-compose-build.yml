@@ -9,7 +9,7 @@ x-images:
         BASE: "${DRUPAL_BASE_IMAGE:-{{cookiecutter.base_image}}}"
         # BASE: "${DRUPAL_BASE_IMAGE:-{{cookiecutter.debian_image}}}"
         PHP_VER: "${PHP_VER:-{{cookiecutter.php_ver}}}"
-        PHP_GROUP: "${PHP_GROUP-apache}"
+        PHP_GROUP: "${PHP_GROUP-{{cookiecutter.php_group}}}"
         PHP_VER_NO_DOT: "${PHP_VER_NO_DOT:-{{cookiecutter.php_ver|replace('.','')}}}"
         COMPOSER_VERSION: "${COMPOSER_VERSION:-{{cookiecutter.composer_ver}}}"
 services:
