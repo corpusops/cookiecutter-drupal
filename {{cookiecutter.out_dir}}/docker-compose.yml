@@ -242,7 +242,7 @@ services:
 {% endif %}
   backup:
     <<: [ *env ]
-    image: "corpusops/dbsmartbackup:{{cookiecutter.db_tag}}-{{cookiecutter.db_version}}"
+    image: "corpusops/dbsmartbackup:{{db_tag}}-{{cookiecutter.db_version}}"
     restart: always
     volumes:
       - backupdb-dumps:/var/db_smart_backup/
