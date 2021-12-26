@@ -11,6 +11,11 @@ virtualenv --python=python3 ~/tools/cookiecutter
 ~/tools/cookiecutter/bin/pip install cookiecutter
 ```
 
+### For MacOS users
+
+Install gnu-sed with `brew install gsed` and use it as default with `export PATH="/usr/local/opt/gnu-sed/libexec/gnubin:$PATH"` for the focllowing commands.
+
+
 ## Create a new Drupal project
 
 - create on gitlab your project (empty)
@@ -107,14 +112,12 @@ If you launch a `up` action on dev local environement the application is not yet
 ## Fill ansible inventory
 
 ### Generate ssh deploy key
-
 ```ssh
 cd local
 ssh-keygen -t rsa -b 2048 -N '' -C deploy -f deploy
 ```
 
 ### Generate vaults password file
-
 ```sh
 export CORPUSOPS_VAULT_PASSWORD=SuperVerySecretPassword
 .ansible/scripts/setup_vaults.sh
@@ -133,24 +136,20 @@ find .ansible/inventory/group_vars/|grep encrypt
 ```
 
 ### Generate vaults
-
 Also open and read both your project top ``README.md`` and the ``.ansible/README.md``
 
 You need to
-
 1. open in a editor:
 
     ```sh
     $EDITOR .ansible/inventory/group_vars/dev/default.movemetoencryptedvault.yml
     ```
-
 2. In another window/shell, use Ansible vault to create/edit that file without the "encrypted" in the filename and
 copy/paste/adapt the content
 
     ```sh
     .ansible/scripts/edit_vault.sh .ansible/inventory/group_vars/dev/default.yml
     ```
-
 3. Delete the original file
 
     ```sh
@@ -161,13 +160,11 @@ copy/paste/adapt the content
 - ⚠️Please note⚠️: that you will need to put the previously generated ssh deploy key in ``all/default.yml``
 
 ## Push to gitlab
-
 - Push to gitlab and run the dev job until it succeeds
 - Trigger the dev image release job until it succeeds
 
 
 ## Deploy manually
-
 - Deploy manually one time to see everything is in place<br/>
   Remember:
     - Your local copy is synced as the working directory on target env (with exclusions, see playbooks)
@@ -181,9 +178,7 @@ copy/paste/adapt the content
     ```
 
 ## Update project
-
 You can regenerate at a later time the project
-
 ```sh
 local/regen.sh  # and verify new files and updates
 ```
