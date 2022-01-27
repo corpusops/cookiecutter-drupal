@@ -82,7 +82,7 @@ x-images:
       ABSOLUTE_URL_SCHEME: "${ABSOLUTE_URL_SCHEME-http}"
       ABSOLUTE_URL_DOMAIN: "${ABSOLUTE_URL_DOMAIN-{{cookiecutter.local_domain}}}"
       ABSOLUTE_URL_DOMAIN_ESCAPE: "${ABSOLUTE_URL_DOMAIN_ESCAPE-{{cookiecutter.local_domain.replace('.', '\\\\.')}}}"
-      ABSOLUTE_URL_PORT: "${ABSOLUTE_URL_PORT-{{cookiecutter.local_http_port}}}"
+      ABSOLUTE_URL_PORT: "${ABSOLUTE_URL_PORT-:{{cookiecutter.local_http_port}}}"
       #
       PHP_MAX_WORKERS: "${PHP_MAX_WORKERS-10}"
       PHP_MAX_SPARE_WORKERS: "${PHP_MAX_SPARE_WORKERS-5}"

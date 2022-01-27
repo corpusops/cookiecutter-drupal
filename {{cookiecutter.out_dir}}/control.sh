@@ -561,8 +561,6 @@ do_make_docs() {
         -e NO_INIT=${NO_HTML-} \
         -e NO_CLEAN=${NO_CLEAN-} \
         -e HOST_USER_UID=$(id -u) \
-        -e SOURCEDIR=${SOURCEDIR-} \
-        -e BUILDDIR=${BUILDDIR-} \
         -e DEBUG=${DEBUG-} \
         docs "$@"
 }
