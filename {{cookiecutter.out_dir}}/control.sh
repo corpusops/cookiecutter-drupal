@@ -154,6 +154,15 @@ do_dbcompose() {
     ( export COMPOSE_FILE="$COMPOSE_FILE_BUILD" && "$@" )
 }
 
+#  mysql $@: wrapper to mysql interpreter
+do_mysql() {
+    set -x
+    cmd='do_dcompose exec db sh -ec "mysql --password=\$MYSQL_PASSWORD --user=\$MYSQL_USER \$MYSQL_DATABASE'
+    cli=( "$@" )
+    for var in "${cli[@]}";do cmd="$cmd $(printf %q "$var")";done
+    eval $cmd'"'
+}
+
 #  psql $@: wrapper to psql interpreter
 do_psql() {
     cmd='do_dcompose exec db bash -ec "PGUSER=\$POSTGRES_USER PGPASSWORD=\$PGPASSWD PGHOST=\$POSTGRES_HOST PGPORT=\$POSTGRES_PORT PGDATABASE=\$POSTGRES_DB psql'
@@ -566,7 +575,7 @@ do_doc() {
 do_main() {
     local args=${@:-usage}
     local actions="up_corpusops|shell|usage|install_docker|setup_corpusops|open_perms_valve"
-    actions="$actions|yamldump|stop|usershell|exec|userexec|dexec|duserexec|dcompose|dbcompose|ps|psql"
+    actions="$actions|yamldump|stop|usershell|exec|userexec|dexec|duserexec|dcompose|dbcompose|ps|psql|mysql"
     actions="$actions|init|up|fg|pull|build|buildimages|down|rm|run"
     actions="$actions|cypress_open|cypress_run|cypress_open_local|cypress_open_dev|cypress_run_local|cypress_run_dev"
     actions_drupal="osx_sync|server|tests|test|tests_debug|test_debug|coverage|drush|linting|console|php|make_docs|doc"

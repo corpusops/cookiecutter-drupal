@@ -14,12 +14,12 @@ x-images:
         COMPOSER_VERSION: "${COMPOSER_VERSION:-{{cookiecutter.composer_ver}}}"
 services:
 
-  {%-if not cookiecutter.remove_varnish%}
+{%-if not cookiecutter.remove_varnish%}
   varnish:
     <<: [ *env ]
     build: {args: {<<: [ *args ], BASE: "${VARNISH_IMAGE_BASE:-{{cookiecutter.ubuntu_image}}}"}, context: ".", dockerfile: "Dockerfile-Varnish"}
-  {%-endif%}
-  {%-if not cookiecutter.remove_doc%}
+{%-endif%}
+{%-if not cookiecutter.remove_doc%}
   docs:
     <<: [ *env, *drupal ]
     image: "${{'{'}}{{cookiecutter.app_type.upper()}}_IMAGE}:${{'{'}}{{cookiecutter.app_type.upper()}}_IMAGE_VERSION}-docsbuilder"
@@ -28,10 +28,10 @@ services:
     - ./docs:/code/docs.host
     - ./app:/code/app.host
     - ./local:/code/local
-  {%-endif%}
-  {%- if not cookiecutter.remove_cron %}
+{%-endif%}
+{%- if not cookiecutter.remove_cron %}
   cron: {<<: [ *{{cookiecutter.app_type}} ]}
-  {%-endif%}
+{%-endif%}
   {{cookiecutter.app_type}}: {<<: [ *{{cookiecutter.app_type}} ]}
   cypress:
     <<: [ *env ]

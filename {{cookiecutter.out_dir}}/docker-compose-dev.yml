@@ -52,7 +52,9 @@ services:
       NO_FORCE_SSL: "{%if not cookiecutter.ssl_in_dev%}1{%endif%}"
     ports:
       - "${DRUPAL_HTTP_LISTEN:-0.0.0.0}:${DRUPAL_HTTP_PORT:-{{cookiecutter.local_http_port}}}:80"
-{%if cookiecutter.ssl_in_dev %}      - "${DRUPAL_HTTP_LISTEN:-0.0.0.0}:${DRUPAL_HTTPS_PORT:-443}:443"{% endif %}
+{%-if cookiecutter.ssl_in_dev %}
+      - "${DRUPAL_HTTP_LISTEN:-0.0.0.0}:${DRUPAL_HTTPS_PORT:-{{cookiecutter.local_https_port}}}:443"
+{%- endif %}
     volumes:
       # remount public/private (named volumes on prod, local remount on dev)
       # on /code/app/var/public (files) and /code/app/var/private
