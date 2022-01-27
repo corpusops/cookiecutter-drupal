@@ -19,21 +19,21 @@ x-images:
       # SDEBUG: "1"
       # NO_STARTUP_LOGS: ""
     volumes: &{{cookiecutter.app_type}}_volumes
-      {%-if cookiecutter.use_submodule_for_deploy_code %}
-      - ./local/drupal-deploy-common/sys/init.sh:/code/init/init.sh
-      - ./local/drupal-deploy-common:/code/local/drupal-deploy-common
-      {%- else%}
-      - ./sys/init.sh:/code/init/init.sh
-      - ./:/code/local/drupal-deploy-common
-      {%- endif%}
-      - ./sys:/code/sys
-      - ./local:/code/local
-      - ./app:{{cookiecutter.app_path}}
-      # remount public/private (named volumes on prod, local remount on dev)
-      # on /code/app/public/files and /code/app/private
-      - ./app/var/public:{{cookiecutter.public_files_path}}/
-      - ./app/var/private:{{cookiecutter.private_path}}/
-      #- ./app/var/cache:{{cookiecutter.cache_path}}
+    {%-if cookiecutter.use_submodule_for_deploy_code %}
+    - ./local/drupal-deploy-common/sys/init.sh:/code/init/init.sh
+    - ./local/drupal-deploy-common:/code/local/drupal-deploy-common
+    {%- else%}
+    - ./sys/init.sh:/code/init/init.sh
+    - ./:/code/local/drupal-deploy-common
+    {%- endif%}
+    - ./sys:/code/sys
+    - ./local:/code/local
+    - ./app:{{cookiecutter.app_path}}
+    # remount public/private (named volumes on prod, local remount on dev)
+    # on /code/app/public/files and /code/app/private
+    - ./app/var/public:{{cookiecutter.public_files_path}}/
+    - ./app/var/private:{{cookiecutter.private_path}}/
+    #- ./app/var/cache:{{cookiecutter.cache_path}}
 services:
   db:
     ports:
@@ -47,25 +47,27 @@ services:
 {%-endif%}
   nginx:
     environment:
-      <<: [ *drupal_env ]
+      <<: [ *{{cookiecutter.app_type}}_env ]
       NO_SSL: "{%if not cookiecutter.ssl_in_dev%}1{%else%}0{%endif%}"
       NO_FORCE_SSL: "{%if not cookiecutter.ssl_in_dev%}1{%endif%}"
+      NGINX_PORT: "${DRUPAL_HTTPS_PORT:-{{cookiecutter.local_http_port}}}"
+      NGINX_SSL_PORT: "${DRUPAL_HTTPS_PORT:-{{cookiecutter.local_https_port}}}"
     ports:
-      - "${DRUPAL_HTTP_LISTEN:-0.0.0.0}:${DRUPAL_HTTP_PORT:-{{cookiecutter.local_http_port}}}:80"
+    - "${DRUPAL_HTTP_LISTEN:-0.0.0.0}:${DRUPAL_HTTP_PORT:-{{cookiecutter.local_http_port}}}:${DRUPAL_HTTP_PORT:-{{cookiecutter.local_http_port}}}"
 {%-if cookiecutter.ssl_in_dev %}
-      - "${DRUPAL_HTTP_LISTEN:-0.0.0.0}:${DRUPAL_HTTPS_PORT:-{{cookiecutter.local_https_port}}}:443"
+    - "${DRUPAL_HTTP_LISTEN:-0.0.0.0}:${DRUPAL_HTTPS_PORT:-{{cookiecutter.local_https_port}}}:443"
 {%- endif %}
     volumes:
-      # remount public/private (named volumes on prod, local remount on dev)
-      # on /code/app/var/public (files) and /code/app/var/private
-      - ./app/www/:{{cookiecutter.public_path}}
-      - ./app/var/public:{{cookiecutter.public_files_path}}
-      - ./app/var/private:{{cookiecutter.private_path}}
+    # remount public/private (named volumes on prod, local remount on dev)
+    # on /code/app/var/public (files) and /code/app/var/private
+    - ./app/www/:{{cookiecutter.public_path}}
+    - ./app/var/public:{{cookiecutter.public_files_path}}
+    - ./app/var/private:{{cookiecutter.private_path}}
   backup: {<<: [ *bypass ]}
-  {%- if not cookiecutter.remove_cron %}
+{%- if not cookiecutter.remove_cron %}
   cron:
-    <<: [ *bypass,  *{{cookiecutter.app_type}} ]
-{% endif %}
+    <<: [ *bypass, *{{cookiecutter.app_type}} ]
+{%- endif %}
   {{cookiecutter.app_type}}:
     <<: [ *{{cookiecutter.app_type}} ]
     environment:

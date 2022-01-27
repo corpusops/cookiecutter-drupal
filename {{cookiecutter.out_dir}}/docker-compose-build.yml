@@ -8,9 +8,10 @@ x-images:
         BUILDKIT_INLINE_CACHE: "1"
         BASE: "${DRUPAL_BASE_IMAGE:-{{cookiecutter.base_image}}}"
         # BASE: "${DRUPAL_BASE_IMAGE:-{{cookiecutter.debian_image}}}"
+        # BASE: "${DRUPAL_BASE_IMAGE:-{{cookiecutter.centos_image}}}"
         PHP_VER: "${PHP_VER:-{{cookiecutter.php_ver}}}"
         PHP_GROUP: "${PHP_GROUP-{{cookiecutter.php_group}}}"
-        PHP_VER_NO_DOT: "${PHP_VER_NO_DOT:-{{cookiecutter.php_ver|replace('.','')}}}"
+        PHP_VER_NO_DOT: "${PHP_VER_NO_DOT:-{{cookiecutter.php_ver.replace('.', '') }}}"
         COMPOSER_VERSION: "${COMPOSER_VERSION:-{{cookiecutter.composer_ver}}}"
 services:
 
@@ -21,7 +22,7 @@ services:
 {%-endif%}
 {%-if not cookiecutter.remove_doc%}
   docs:
-    <<: [ *env, *drupal ]
+    <<: [ *env, *{{cookiecutter.app_type}} ]
     image: "${{'{'}}{{cookiecutter.app_type.upper()}}_IMAGE}:${{'{'}}{{cookiecutter.app_type.upper()}}_IMAGE_VERSION}-docsbuilder"
     build: {args: {<<: [ *args ], PY_VER: "${PY_VER:-3.8}", BASE: "${DOCS_IMAGE_BASE:-{{cookiecutter.ubuntu_image}}}"}, context: ".", dockerfile: "Dockerfile-docs"}
     volumes:
@@ -38,5 +39,5 @@ services:
     image: cypress
     build: ./e2e
     volumes:
-      - ./e2e/cypress:/app/cypress
-      - ./e2e/cypress.json:/app/cypress.json
+    - ./e2e/cypress:/app/cypress
+    - ./e2e/cypress.json:/app/cypress.json

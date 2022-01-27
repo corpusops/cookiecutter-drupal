@@ -26,25 +26,23 @@ services:
     <<: [ *{{cookiecutter.app_type}} ]
     ports:
     - "${DRUPAL_API_LISTEN:-127.0.0.1}:${DRUPAL_API_PORT:-9000}:9000"
-{% if not cookiecutter.remove_cron %}
+{%- if not cookiecutter.remove_cron %}
   cron:
     restart: unless-stopped
-  {%- endif%}
+{%- endif%}
   backup:
     restart: unless-stopped
   mailcatcher:
     restart: unless-stopped
-{%if cookiecutter.with_redis%}
+{%-if cookiecutter.with_redis%}
   redis:
     restart: unless-stopped
-  {%endif%}
+{%-endif%}
   db:
     restart: unless-stopped
-  backup:
+{%- if cookiecutter.db_mode.startswith('post') %}
+  setup-postgres:
+{%- elif cookiecutter.db_mode.startswith('m') %}
+  setup-mysql:
     restart: unless-stopped
-{% if cookiecutter.db_mode == 'postgres' %}  setup-postgres:
-    restart: unless-stopped
-{% endif %}
-{% if cookiecutter.db_mode == 'mysql' %}  setup-mysql:
-    restart: unless-stopped
-{% endif %}
+{%- endif %}
