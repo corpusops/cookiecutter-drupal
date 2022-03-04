@@ -88,6 +88,7 @@ x-images:
       PHP_MAX_WORKERS: "${PHP_MAX_WORKERS-10}"
       PHP_MAX_SPARE_WORKERS: "${PHP_MAX_SPARE_WORKERS-5}"
       PHP_MIN_SPARE_WORKERS: "${PHP_MIN_SPARE_WORKERS-3}"
+      PHP_XDEBUG_ENABLED: "${PHP_XDEBUG_ENABLED-1}"
       # VARNISH
       VARNISH__HTTP_PROTECT_USER: "${VARNISH__HTTP_PROTECT_USER-}"
       VARNISH__HTTP_PROTECT_PASSWORD: "${VARNISH__HTTP_PROTECT_PASSWORD-}"
@@ -323,7 +324,6 @@ volumes:
   webroot:
   publiccontrib:
   private:
-  # cache:
   logs:
   mails:
 
