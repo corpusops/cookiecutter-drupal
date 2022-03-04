@@ -254,6 +254,8 @@ server {
 {%if not cookiecutter.remove_varnish%}
     # Re-do our Host header wich was removed by 1st Vhost and Varnish to use the `internal-<host>` version
     set $host_ok $http_x_zorg_origin_host;
+{% else %}
+    set $host_ok $host;
 {% endif %}
 
     error_log  /logs/drupal-error.log {{'{{'}} $v.loglevel }};

@@ -25,7 +25,7 @@ $databases['default']['default'] = array(
   'host' => '{{ '{{ ' }}.Env.DATABASE_HOST }}',
   'port' => '{{ '{{ ' }}.Env.DATABASE_PORT }}',
 {% if cookiecutter.db_mode == 'mysql' -%}
-  'collation' => 'utf8_general_ci',
+  'collation' => 'utf8mb4_general_ci',
   'namespace' => 'Drupal\\Core\\Database\\Driver\\mysql',
 {% endif %}
   'prefix' => '{{ '{{ ' }}.Env.DATABASE_PREFIX }}'
