@@ -2,7 +2,7 @@
 version: '3.7'
 x-images:
   env: &env
-    env_file: [.env, docker.env]
+    env_file: [ .env, docker.env ]
     environment: &env_vars
       PHP_USER: "${PHP_USER-{{cookiecutter.php_user}}}"
       PHP_GROUP: "${PHP_GROUP-{{cookiecutter.php_group}}}"
@@ -101,10 +101,10 @@ x-images:
       VARNISH_TTL_STATIC_BROWSER: "${VARNISH_TTL_STATIC_BROWSER-86400}"
       # Mail
       DRUPAL_SETTINGS__system_DOT_mail___interface_DOT_default: "${DRUPAL_SETTINGS__system_DOT_mail___interface_DOT_default-SMTPMailSystem}"
-      DRUPAL_SETTINGS__smtp_DOT_settings___smtp_host:     "${DRUPAL_SETTINGS__smtp_DOT_settings___smtp_host-mailcatcher}"
-      DRUPAL_SETTINGS__smtp_DOT_settings___smtp_port:     "${DRUPAL_SETTINGS__smtp_DOT_settings___smtp_port-1025}"
+      DRUPAL_SETTINGS__smtp_DOT_settings___smtp_host: "${DRUPAL_SETTINGS__smtp_DOT_settings___smtp_host-mailcatcher}"
+      DRUPAL_SETTINGS__smtp_DOT_settings___smtp_port: "${DRUPAL_SETTINGS__smtp_DOT_settings___smtp_port-1025}"
       DRUPAL_SETTINGS__smtp_DOT_settings___smtp_protocol: "${DRUPAL_SETTINGS__smtp_DOT_settings___smtp_protocol-standard}"
-      DRUPAL_SETTINGS__smtp_DOT_settings___smtp_autotls:  "${DRUPAL_SETTINGS__smtp_DOT_settings___smtp_autotls-raw:::true}"
+      DRUPAL_SETTINGS__smtp_DOT_settings___smtp_autotls: "${DRUPAL_SETTINGS__smtp_DOT_settings___smtp_autotls-raw:::true}"
       DRUPAL_SETTINGS__smtp_DOT_settings___smtp_username: "${DRUPAL_SETTINGS__smtp_DOT_settings___smtp_username-mailcatcher}"
       DRUPAL_SETTINGS__smtp_DOT_settings___smtp_password: "${DRUPAL_SETTINGS__smtp_DOT_settings___smtp_password-mailcatcher}"
       PHP_MEMORY_LIMIT: "${PHP_MEMORY_LIMIT:-{{cookiecutter.php_memory_limit}}}"
@@ -118,19 +118,19 @@ x-images:
       PROJECT_PACKAGE: "${PROJECT_PACKAGE-{{cookiecutter.drupal_project_name}}}"
       PROJECT_DIR: "${PROJECT_DIR-/code/app/}"
     depends_on:
-    - db
-    - setup-{{db_tag}}
+      - db
+      - setup-{{db_tag}}
 {%-if cookiecutter.with_redis%}
-    - redis
+      - redis
 {%-endif%}
     working_dir: /code/app
     command:
-    - /bin/sh
-    - '-c'
-    - >-
-      dockerize -wait http://setup-{{db_tag}} -timeout 45s
-      && echo "launching init.sh"
-      && /init.sh
+      - /bin/sh
+      - '-c'
+      - >-
+        dockerize -wait http://setup-{{db_tag}} -timeout 45s
+        && echo "launching init.sh"
+        && /init.sh
     volumes:
     - logs:/logs/
     - publiccontrib:{{cookiecutter.public_files_path}}/
@@ -148,7 +148,7 @@ services:
     <<: [ *env ]
     image: corpusops/mailhog
     hostname: mailcatcher
-    volumes: ["mails:/mails"]
+    volumes: [ "mails:/mails" ]
     environment:
       <<: [ *env_vars ]
       MH_STORAGE: maildir
@@ -254,7 +254,7 @@ services:
       IMAGE_MODE: cron
       NO_INSTALL: "1"
     depends_on:
-    - {{cookiecutter.app_type}}
+      - {{cookiecutter.app_type}}
 {% endif %}
   backup:
     <<: [ *env ]
@@ -267,47 +267,47 @@ services:
     <<: [ *env ]
     image: "{{cookiecutter.mysql_image}}"
     depends_on:
-    - db
+      - db
     entrypoint:
-    - /bin/sh
-    - '-c'
-    - |-
-      set -ex
-      MYSQL_STARTUP_TIMEOUT=$${MYSQL_STARTUP_TIMEOUT-45s}
-      flag=/started_$$(echo $$MYSQL_DB|sed -re "s![/:]!__!g")
-      if [ -e "$$flag" ];then rm -f "$$flag";fi
-      echo "Try connection to mysql: $$MYSQL_DB & wait for db init" >&2 \
-      && ( while true;do if ( \
-        echo "select 1;"\
-        | mysql --user="$$MYSQL_USER" --password="$$MYSQL_PASSWORD" --host="$$MYSQL_HOST" \
-           "$$MYSQL_DB"\
-      );then touch $$flag && break;fi;done )&
-      set -x \
-      && dockerize -wait file://$$flag -timeout 45s \
-      && while true;do printf "HTTP/1.1 200 OK\n\nstarted"| ( nc -l -p 80 || /bin/true);done
+      - /bin/sh
+      - '-c'
+      - |-
+        set -ex
+        MYSQL_STARTUP_TIMEOUT=$${MYSQL_STARTUP_TIMEOUT-45s}
+        flag=/started_$$(echo $$MYSQL_DB|sed -re "s![/:]!__!g")
+        if [ -e "$$flag" ];then rm -f "$$flag";fi
+        echo "Try connection to mysql: $$MYSQL_DB & wait for db init" >&2 \
+        && ( while true;do if ( \
+          echo "select 1;"\
+          | mysql --user="$$MYSQL_USER" --password="$$MYSQL_PASSWORD" --host="$$MYSQL_HOST" \
+             "$$MYSQL_DB"\
+        );then touch $$flag && break;fi;done )&
+        set -x \
+        && dockerize -wait file://$$flag -timeout 45s \
+        && while true;do printf "HTTP/1.1 200 OK\n\nstarted"| ( nc -l -p 80 || /bin/true);done
 {%- elif db_tag.startswith('post') %}
   setup-postgres:
     <<: [ *env ]
     image: "{{cookiecutter.postgres_image}}"
     depends_on:
-    - db
+      - db
     entrypoint:
-    - /bin/sh
-    - '-c'
-    - |-
-      set -ex
-      POSTGRES_STARTUP_TIMEOUT=$${POSTGRES_STARTUP_TIMEOUT-45s}
-      flag=/started_$$(echo $$POSTGRES_DB|sed -re "s![/:]!__!g")
-      if [ -e "$$flag" ];then rm -f "$$flag";fi
-      echo "Try connection to pgsql: $$POSTGRES_DB & wait for db init" >&2 \
-      && ( while true;do if ( \
-        echo "{% if 'gis' in cookiecutter.db_mode%}select 1 from spatial_ref_sys limit 1;select postgis_version();{%else%}select 1{%endif%}"\
-        | psql -v ON_ERROR_STOP=1 \
-          "postgres://$$POSTGRES_USER:$$POSTGRES_PASSWORD@db/$$POSTGRES_DB"\
-      );then touch $$flag && break;fi;done )&
-      set -x \
-      && dockerize -wait file://$$flag -timeout 45s \
-      && while true;do printf "HTTP/1.1 200 OK\n\nstarted"| ( nc -l -p 80 || /bin/true);done
+      - /bin/sh
+      - '-c'
+      - |-
+        set -ex
+        POSTGRES_STARTUP_TIMEOUT=$${POSTGRES_STARTUP_TIMEOUT-45s}
+        flag=/started_$$(echo $$POSTGRES_DB|sed -re "s![/:]!__!g")
+        if [ -e "$$flag" ];then rm -f "$$flag";fi
+        echo "Try connection to pgsql: $$POSTGRES_DB & wait for db init" >&2 \
+        && ( while true;do if ( \
+          echo "{% if 'gis' in cookiecutter.db_mode%}select 1 from spatial_ref_sys limit 1;select postgis_version();{%else%}select 1{%endif%}"\
+          | psql -v ON_ERROR_STOP=1 \
+            "postgres://$$POSTGRES_USER:$$POSTGRES_PASSWORD@db/$$POSTGRES_DB"\
+        );then touch $$flag && break;fi;done )&
+        set -x \
+        && dockerize -wait file://$$flag -timeout 45s \
+        && while true;do printf "HTTP/1.1 200 OK\n\nstarted"| ( nc -l -p 80 || /bin/true);done
 {%- endif %}
 volumes:
   backupdb-logs:
