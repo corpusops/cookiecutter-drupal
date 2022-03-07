@@ -23,6 +23,7 @@
 {%if not cookiecutter.remove_varnish%}
 {{'{{-'}} $v := merge $v ( dict "varnish_nginx_secret"        ( .Env.VARNISH_NGINX_SHARED_SECRET | default "shared_secret_stuff" )           ) -}}
 {% endif %}
+{{'{{'}} $v := merge $v ( dict "loglevel"                    ( .Env.NGINX_LOGLEVEL | default "crit" )                                       ) }}
 
 # optimize internal nginx buffers
 types_hash_max_size 2048;
@@ -41,6 +42,7 @@ proxy_busy_buffers_size 256k;
 log_format custom_combined '"$remote_addr - $remote_user [$time_local] "$request" $status $bytes_sent "$http_referer" "$http_user_agent" "$gzip_ratio"';
 # Define type of requests going to logs (to remove OPTIONS requests for example)
 map $request_method $method_loggable { OPTIONS 0;default 1;}
+map $request_method $restrict_access { OPTIONS off;default "Restricted";}
 
 # activate real_ip logging
 real_ip_recursive {{'{{'}} $v.real_ip_from_recursive }};
@@ -88,13 +90,13 @@ server {
     server_name {{'{{'}} $v.server_name }}{{'{{'}}if $v.server_aliases }} {{'{{'}}$v.server_aliases}}{{'{{'}}end}};
     server_name_in_redirect {{'{{'}} $v.server_name_in_redirect }};
 
-    error_log  /logs/drupal-front-error.log info;
+    error_log  /logs/drupal-front-error.log {{'{{'}} $v.log_level }};
     access_log /logs/drupal-front-access.log custom_combined if=$method_loggable;
 
     {{'{{'}} define "vhost_proxy" }}
 
     {{'{{'}} if .Env.DRUPAL__HTTP_PROTECT_PASSWORD }}
-    auth_basic            "Restricted";
+    auth_basic            $restrict_access;
     auth_basic_user_file  /etc/htpasswd-protect;
     {{'{{'}} end }}
 
