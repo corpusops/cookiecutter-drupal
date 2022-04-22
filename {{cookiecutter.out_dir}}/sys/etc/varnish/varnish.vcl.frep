@@ -273,9 +273,9 @@ sub vcl_recv {
 
 sub drupal_recv {
 
-  # Do not cache admin/documentation, ACL handled by Drupal
+  # Do not cache admin/documentation & system files, ACL handled by Drupal
   if (
-      req.url ~ "^/admin/documentation/"
+      req.url ~ "^(/admin/documentation/|/system/files/)"
     ) {
        return (pass);
   }
