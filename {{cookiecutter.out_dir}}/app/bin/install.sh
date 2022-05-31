@@ -15,7 +15,6 @@ if ! has_ignited_db;then
     do_install="y"
 fi
 
-env
 echo "testing ${DRUPAL_FORCE_INSTALL}"
 if [ ! -z ${DRUPAL_FORCE_INSTALL} ]; then
     log "DRUPAL_FORCE_INSTALL variable is set: Db overwrite allowed"
