@@ -1,3 +1,5 @@
+vcl 4.1;
+
 {{'{{-'}} $v := dict "$" $ -}}
 {{'{{-'}} $v := merge $v ( dict "domain"                    ( .Env.ABSOLUTE_URL_DOMAIN | default "www.example.com" ) ) -}}
 {{'{{-'}} $v := merge $v ( dict "monitoring_ip"             ( .Env.MONITORING_IP | default "10.0.0.1" ) ) -}}
@@ -12,7 +14,6 @@
 {{'{{-'}} $v := merge $v ( dict "varnish_ttl_static_client" ( .Env.VARNISH_TTL_STATIC_BROWSER | default "900" ) ) -}}
 {{'{{-'}} $v := merge $v ( dict "varnish_nginx_secret"      ( .Env.VARNISH_NGINX_SHARED_SECRET | default "shared_secret_stuff" ) ) -}}
 {{'{{-'}} $v := merge $v ( dict "varnish_env_mode"          ( .Env.DRUPAL_ENV_NAME | default "prod" ) ) -}}
-vcl 4.1;
 # ^^^
 # Marker to tell the VCL compiler that this VCL has been adapted to the
 # new 4.1 format.
@@ -22,22 +23,22 @@ import std;
 
 # Default backend definition. Set this to point to your content server.
 
-{{'{{-'}}  range $v.backends | splitList " " }}
-backend backend_drupal_{{'{{'}}  . | replace "." "_"}} {
-    .host = "{{'{{'}}  . }}";
+{{'{{-'}} range $v.backends | splitList " " }}
+backend backend_drupal_{{'{{'}} . | replace "." "_"}} {
+    .host = "{{'{{'}} . }}";
     # that does not work, it's nginx which alters the host adding internal-, in fact.
     # because on the Varnish side this is used only when no host headers are present
-    # .host_header = "internal-{{'{{'}}  $v.domain }}";
+    # .host_header = "internal-{{'{{'}} $v.domain }}";
     .port = "80";
     .connect_timeout = 5s;
     .first_byte_timeout = 200s;
     .between_bytes_timeout = 60s;
     .probe = {
         .request =
-            "GET {{'{{'}}  $v.probe_url }} HTTP/1.1"
-            "Host: internal-{{'{{'}}  $v.domain }}"
-            "x-zorg-origin-host: {{'{{'}}  $v.domain }}"
-            "x-zorg-caesar: {{'{{'}}  $v.varnish_nginx_secret }}"
+            "GET {{'{{'}} $v.probe_url }} HTTP/1.1"
+            "Host: internal-{{'{{'}} $v.domain }}"
+            "x-zorg-origin-host: {{'{{'}} $v.domain }}"
+            "x-zorg-caesar: {{'{{'}} $v.varnish_nginx_secret }}"
             "X-SSL: 1"
             "Connection: close"
             "Accept-Encoding: gzip";
@@ -47,29 +48,29 @@ backend backend_drupal_{{'{{'}}  . | replace "." "_"}} {
         .threshold = 2;
     }
 }
-{{'{{-'}}  end }}
+{{'{{-'}} end }}
 
 sub vcl_init {
     # create round-robin director with all backends
     new lb_default = directors.round_robin();
-    {{'{{-'}}  range $v.backends | splitList " " }}
-    lb_default.add_backend(backend_drupal_{{'{{'}}  . | replace "." "_"}});
-    {{'{{-'}}  end }}
+    {{'{{-'}} range $v.backends | splitList " " }}
+    lb_default.add_backend(backend_drupal_{{'{{'}} . | replace "." "_"}});
+    {{'{{-'}} end }}
 }
 
 acl restricted {
     "localhost";
-    "{{'{{'}}  $v.monitoring_ip }}";
-    "{{'{{'}}  $v.load_balancer_ip }}";
+    "{{'{{'}} $v.monitoring_ip }}";
+    "{{'{{'}} $v.load_balancer_ip }}";
 }
 
 # servers allowed to send BAN requests
 acl ban_agents {
     "localhost";
-    {{'{{-'}}  range $v.backends | splitList " " }}
-    "{{'{{'}}  . }}";
+    {{'{{-'}} range $v.backends | splitList " " }}
+    "{{'{{'}} . }}";
     "cron";
-    {{'{{-'}}  end }}
+    {{'{{-'}} end }}
 }
 
 sub vcl_recv {
@@ -143,7 +144,7 @@ sub vcl_recv {
     {{'{{'}}  if $v.varnish_http_auth }}
         # preprod only: add a simple http auth to prevent indexation
         # But not on /monitor-status.php
-        if ( (! req.http.Authorization ~ "Basic {{'{{'}}  $v.varnish_http_auth }}") && (! req.url ~ "^/monitor-status\.php" )) {
+        if ( (! req.http.Authorization ~ "Basic {{'{{'}} $v.varnish_http_auth }}") && (! req.url ~ "^/monitor-status\.php" )) {
             return(synth(401, "Restricted"));
         }
         if (req.http.Authorization && (! req.url ~ "^/mailcatcher/") ) {
@@ -159,10 +160,10 @@ sub vcl_recv {
             # auth headers and allow caching
             unset req.http.Authorization;
         }
-    {{'{{'}}  end }}
+    {{'{{'}} end }}
 
     # Caesar secret for communication with internal-* domains on Nginx backends
-    set req.http.x-zorg-caesar = "{{'{{'}}  $v.varnish_nginx_secret }}";
+    set req.http.x-zorg-caesar = "{{'{{'}} $v.varnish_nginx_secret }}";
 
     # NORMALIZATION OF ACCEPT-ENCODING HEADER
     # either gzip, then deflate, then none
@@ -212,23 +213,23 @@ sub vcl_recv {
     # Remove all cookies that Drupal doesn't need to know about. ANY remaining
     # cookie will cause the request to pass-through to Apache.
     # Currently on power user have sessions, we disable the cache for all power users
-    # we also keep this same 'disable cache' for {{'{{'}}  $v.no_cache_cookie }} cookies, if you need
+    # we also keep this same 'disable cache' for {{'{{'}} $v.no_cache_cookie }} cookies, if you need
     # to generate such short-term cookies for anonymous users one day (be carefull
     # with disabling the cache)
     # D9 ----------------------------------------------
     if (req.http.Cookie) {
         # Successive operations clean cookies, as illustrated in the example below.
-        # a=b; SESS4564645=123; c=d;  {{'{{'}}  $v.no_cache_cookie }}=Y; x=y
-        # ;a=b; SESS4564645=123; c=d;  {{'{{'}}  $v.no_cache_cookie }}=Y; x=y
-        # ;a=b;SESS4564645=123;c=d;{{'{{'}}  $v.no_cache_cookie }}=Y;x=y
-        # ;a=b; SESS4564645=123;c=d; {{'{{'}}  $v.no_cache_cookie }}=Y;x=y
-        # SESS4564645=123; {{'{{'}}  $v.no_cache_cookie }}=Y;
+        # a=b; SESS4564645=123; c=d;  {{'{{'}} $v.no_cache_cookie }}=Y; x=y
+        # ;a=b; SESS4564645=123; c=d;  {{'{{'}} $v.no_cache_cookie }}=Y; x=y
+        # ;a=b;SESS4564645=123;c=d;{{'{{'}} $v.no_cache_cookie }}=Y;x=y
+        # ;a=b; SESS4564645=123;c=d; {{'{{'}} $v.no_cache_cookie }}=Y;x=y
+        # SESS4564645=123; {{'{{'}} $v.no_cache_cookie }}=Y;
         # Add a semi-colon as prefix to make regexps easier.
         set req.http.Cookie = ";" + req.http.Cookie;
         # Remove spaces before cookie names.
         set req.http.Cookie = regsuball(req.http.Cookie, "; +", ";");
         # Add spaces before cookies we want to keep.
-        set req.http.Cookie = regsuball(req.http.Cookie, ";(SSESS[a-z0-9]+|SESS[a-z0-9]+|XDEBUG_SESSION|{{'{{'}}  $v.no_cache_cookie }})=", "; \1=");
+        set req.http.Cookie = regsuball(req.http.Cookie, ";(SSESS[a-z0-9]+|SESS[a-z0-9]+|XDEBUG_SESSION|{{'{{'}} $v.no_cache_cookie }})=", "; \1=");
         # And remove cookies without spaces before them.
         set req.http.Cookie = regsuball(req.http.Cookie, ";[^ ][^;]*", "");
         # Trim remaining spaces and semi-colons.
@@ -275,28 +276,21 @@ sub drupal_recv {
   # Static content can be cached
   # No security problems (like tricking /admin/reports/index.php/foo.css) because
   # the admin would have no session here, so we would cache a 403
-  if (      
+  if (
       req.url ~ "\.(css|js|jpeg|jpg|png|gif|ico|gz|tgz|bz2|tbz|mp3|ogg|woff|eot|ttf|svg|otf|swf|html|htm|htc|map|json)(\?.*)?$"
   ) {
          unset req.http.cookie;
   }
-  {{'{{'}}  end }}
+  {{'{{'}} end }}
 
-  {{'{{'}}  if $v.no_cache_url }}
+  {{'{{'}} if $v.no_cache_url }}
   # Never cache these paths.
   if (
-      req.url ~ "^{{'{{'}}  $v.no_cache_url }}/.*"
+      req.url ~ "^{{'{{'}} $v.no_cache_url }}/.*"
     ) {
        return (pass);
   }
   {{'{{'}}  end }}
-
-  # Do not cache admin/documentation, ACL handled by Drupal
-  if (
-      req.url ~ "^/admin/documentation/"
-    ) {
-       return (pass);
-  }
 
   # Uncomment this to trigger the vcl_error() subroutine,
   # which will HTML output you some variables

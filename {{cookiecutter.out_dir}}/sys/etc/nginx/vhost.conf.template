@@ -1,9 +1,9 @@
-{{'{{-'}} $dciphers := "EECDH+AESGCM:EDH+AESGCM:ECDHE-RSA-AES128-GCM-SHA256:AES256+EECDH:DHE-RSA-AES128-GCM-SHA256:AES256+EDH:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA:ECDHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES128-SHA256:DHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES256-GCM-SHA384:AES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA:DES-CBC3-SHA:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!MD5:!PSK:!RC4" }}
-{{'{{-'}} $v := dict "$" $ }}
-{{'{{-'}} $v := merge $v ( dict "Env"                           .Env) }}
-{{'{{-'}} $v := merge $v ( dict "certspath"                   ( .Env.SSL_CERTS_PATH | default "/certs" )                                     ) -}}
-{{'{{-'}} $v := merge $v ( dict "cert"                        ( .Env.SSL_CERT_PATH | default ( print $v.certspath  "/cert.crt" ))            ) -}}
-{{'{{-'}} $v := merge $v ( dict "key"                         ( .Env.SSL_KEY_PATH  | default ( print $v.certspath  "/cert.key" ))            ) -}}
+{{'{{-'}} $dciphers := "EECDH+AESGCM:EDH+AESGCM:ECDHE-RSA-AES128-GCM-SHA256:AES256+EECDH:DHE-RSA-AES128-GCM-SHA256:AES256+EDH:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA:ECDHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES128-SHA256:DHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES256-GCM-SHA384:AES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA:DES-CBC3-SHA:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!MD5:!PSK:!RC4" -}}
+{{'{{-'}} $v := dict "$" $ -}}
+{{'{{-'}} $v := merge $v ( dict "Env"                           .Env) -}}
+{{'{{-'}} $v := merge $v ( dict "certspath"                   ( .Env.SSL_CERTS_PATH | default "/certs" )                                     ) --}}
+{{'{{-'}} $v := merge $v ( dict "cert"                        ( .Env.SSL_CERT_PATH | default ( print $v.certspath  "/cert.crt" ))            ) --}}
+{{'{{-'}} $v := merge $v ( dict "key"                         ( .Env.SSL_KEY_PATH  | default ( print $v.certspath  "/cert.key" ))            ) --}}
 {{'{{-'}} $v := merge $v ( dict "diffie"                      ( .Env.NGINX_DH_FILE | default ( print $v.certspath  "/dhparams.pem" ))        ) -}}
 {{'{{-'}} $v := merge $v ( dict "nossl"                       ( .Env.NO_SSL | default "1" )                                                  ) -}}
 {{'{{-'}} if not ( .Env.NO_FORCE_SSL | empty ) -}}
@@ -22,7 +22,7 @@
 {%if not cookiecutter.remove_varnish%}
 {{'{{-'}} $v := merge $v ( dict "varnish_nginx_secret"        ( .Env.VARNISH_NGINX_SHARED_SECRET | default "shared_secret_stuff" )           ) -}}
 {% endif %}
-{{'{{'}} $v := merge $v ( dict "loglevel"                    ( .Env.NGINX_LOGLEVEL | default "crit" )                                       ) }}
+{{'{{-'}} $v := merge $v ( dict "loglevel"                    ( .Env.NGINX_LOGLEVEL | default "crit" )                                       ) -}}
 
 # optimize internal nginx buffers
 types_hash_max_size 2048;
@@ -80,7 +80,6 @@ map $http_x_forwarded_host $best_http_host {
     ''               $this_host;
 }
 
-
 {%if not cookiecutter.remove_varnish%}
 # FRONT HTTP ------------------------
 server {
@@ -129,19 +128,16 @@ server {
         rewrite ^(.*)$ /maintenance.html break;
     }
 
-    {{'{{'}} if .noforcessl }}# {{'{{'}}end }}if ($forwarded_ssl_scheme != "https"){ rewrite ^(.*)$ https://$host$1 permanent; }
+    {{'{{'}} if eq .noforcessl "1" }}# {{'{{'}}end }}if ($forwarded_ssl_scheme != "https"){ rewrite ^(.*)$ https://$host$1 permanent; }
+
+
+    location ~ ^/mailcatcher/ {
+        auth_basic off;
+        proxy_pass http://mailcatcher:8025;
+    }
 
     # SSL -> Nginx -> Varnish -> Nginx-internal:80
     location / {
-
-        location ~ ^/mailcatcher/ {
-            {{'{{'}} if .Env.DRUPAL__HTTP_PROTECT_PASSWORD }}
-            auth_basic off;
-            {{'{{'}} end }}
-            proxy_set_header Authorization  $http_authorization;
-            proxy_pass_header Authorization;
-            proxy_pass http://mailcatcher:8025;
-        }
 
         proxy_set_header Authorization  '';
         proxy_hide_header Authorization;
@@ -152,21 +148,51 @@ server {
 
     {{'{{'}} end }}
     {{'{{'}} template "vhost_proxy" $v }}
+
 }
+
+{{'{{'}} if ne $v.nossl "1" }}
+# FRONT HTTPS ------------------------
+server {
+    listen 443 ssl;
+    ssl on;
+    server_name_in_redirect {{'{{'}} $v.server_name_in_redirect_ssl }};
+    server_name             {{'{{'}} $v.server_name }}{{'{{'}}if $v.server_aliases }} {{'{{'}}$v.server_aliases}}{{'{{'}}end}};
+    ssl_ciphers             {{'{{'}} $v.ssl_ciphers }};
+    ssl_protocols           {{'{{'}} $v.ssl_protocols }};
+    ssl_certificate         {{'{{'}} $v.cert }};
+    ssl_certificate_key     {{'{{'}} $v.key }};
+    ssl_session_cache  shared:SSL:10m;
+    ssl_session_timeout 10m;
+    ssl_prefer_server_ciphers on;
+    ssl_dhparam {{'{{'}} $v.diffie }};
+    error_log  /logs/ssl-drupal-error.log  {{'{{'}} $v.loglevel }};
+    access_log /logs/ssl-drupal-access.log custom_combined if=$method_loggable;
+
+    {%if not cookiecutter.remove_varnish%}
+    {{'{{'}} template "vhost_proxy" $v }}
+    {% else %}
+    {{'{{'}} template "vhost" $v }}
+    {% endif %}
+}
+{{'{{'}} end }}
+
 
 map $http_x_zorg_caesar $varnish_origin_lockdown_failure {
     default "1";
     "{{'{{'}} $v.varnish_nginx_secret }}" "0";
 }
+
+
 # BACK HTTP (After varnish, communication with PHP) ------------------------
 {% else %}
 # FRONT HTTP ---------------------------------------------------------------
 {% endif %}
 server {
     listen 80;
-    
+
     {%if not cookiecutter.remove_varnish%}
-    server_name internal-{{'{{'}} $v.server_name }}{{'{{'}}if $v.server_aliases }}{{'{{'}}- range $v.server_aliases | splitList " " }} internal-{{'{{'}} . }}{{'{{'}}- end }}{{'{{'}}end}};
+    server_name internal-{{'{{'}} $v.server_name }}{{'{{-'}}if $v.server_aliases }}{{'{{'}}- range $v.server_aliases | splitList " " }} internal-{{'{{'}} . }}{{'{{'}}- end }}{{'{{- '}}end}};
     {% else %}
     server_name {{'{{'}} $v.server_name }}{{'{{'}}if $v.server_aliases }} {{'{{'}}$v.server_aliases}}{{'{{'}}end}};
     {% endif %}
@@ -177,7 +203,7 @@ server {
     set $host_ok $http_x_zorg_origin_host;
     {% endif %}
 
-    error_log  /logs/drupal-error.log  info;
+    error_log  /logs/drupal-error.log {{'{{'}} $v.loglevel }};
     access_log /logs/drupal-access.log custom_combined if=$method_loggable;
 
     {%if cookiecutter.remove_varnish%}
@@ -222,12 +248,14 @@ server {
     gzip_comp_level 4;
     gzip_disable "msie6";
     client_max_body_size 100M;
+
     # feed the map variables for ssl up
     set $http_x_ssl                $http_x_ssl_resolved;
     set $http_x_forwarded_proto    $http_x_forwarded_proto_resolved;
     set $http_x_forwarded_ssl      $http_x_forwarded_ssl_resolved;
     set $http_x_forwarded_protocol $http_x_forwarded_protocol_resolved;
     # set $scheme                  $forwarded_ssl_scheme;
+
     # proxy params headers
     proxy_set_header Host $host_ok;
     proxy_set_header X-Real-IP $remote_addr;
@@ -252,11 +280,11 @@ server {
     }
 
     {%if cookiecutter.remove_varnish%}
-    {{'{{'}} if .noforcessl }}# {{'{{'}}end }}if ($forwarded_ssl_scheme != "https"){ rewrite ^(.*)$ https://$host$1 permanent; }
+    {{'{{'}} if eq .noforcessl "1" }}# {{'{{'}}end }}if ($forwarded_ssl_scheme != "https"){ rewrite ^(.*)$ https://$host$1 permanent; }
     {% else %}
-    {{'{{'}} if $v.noforcessl }}# {{'{{'}}end }}if ($forwarded_ssl_scheme != "https"){ rewrite ^(.*)$ https://$host$1 permanent; }
+    {{'{{'}} if eq $v.noforcessl "1" }}# {{'{{'}} end }}if ($forwarded_ssl_scheme != "https"){ rewrite ^(.*)$ https://$host_ok$1 permanent; }
     {% endif %}
-    
+
     # static optimisations
     tcp_nodelay off;
     sendfile on;
@@ -267,6 +295,7 @@ server {
     open_file_cache_valid 30s;
     open_file_cache_min_uses 2;
     open_file_cache_errors on;
+
 
     location / {
 
@@ -349,7 +378,7 @@ server {
         # Replicate the Apache <FilesMatch> directive of Drupal standard
         # .htaccess. Disable access to any code files. Return a 404 to curtail
         # information disclosure.
-        location ~* ^(?:.+\.(?:htaccess|yml|frep|yaml|log|make|engine|inc|info|install|module|profile|po|sh|.*sql|theme|twig|tpl(?:\.php)?|xtmpl)|code-style\.pl|/Entries.*|/Repository|/Root|/Tag|/Template|composer\.(json|lock))$ {
+        location ~* ^(?:.+\.(?:htaccess|yml|yaml|frep|log|make|engine|inc|info|install|module|profile|po|sh|.*sql|theme|twig|tpl(?:\.php)?|xtmpl)|code-style\.pl|/Entries.*|/Repository|/Root|/Tag|/Template|composer\.(json|lock))$ {
             return 404;
         }
 
@@ -386,7 +415,7 @@ server {
         fastcgi_param   REMOTE_PORT             $remote_port;
         fastcgi_param   SERVER_ADDR             $server_addr;
         fastcgi_param   SERVER_PORT             $forwarded_server_port;
-        fastcgi_param   SERVER_NAME             $http_ok;
+        fastcgi_param   SERVER_NAME             $host_ok;
         fastcgi_param   HTTP_HOST               $host_ok;
         fastcgi_param   HTTPS                   $fastcgi_ssl_toggle;
         # X-SendFile management
@@ -505,7 +534,7 @@ server {
             fastcgi_param   REMOTE_PORT             $remote_port;
             fastcgi_param   SERVER_ADDR             $server_addr;
             fastcgi_param   SERVER_PORT             $forwarded_server_port;
-            fastcgi_param   SERVER_NAME             $http_ok;
+            fastcgi_param   SERVER_NAME             $host_ok;
             fastcgi_param   HTTP_HOST               $host_ok;
             fastcgi_param   HTTPS                   $fastcgi_ssl_toggle;
             fastcgi_pass drupal:9000;
@@ -545,29 +574,3 @@ server {
     {% endif %}
 
 }
-{{'{{'}} if ne $v.nossl "1" }}
-
-# FRONT HTTPS ------------------------
-server {
-    listen 443 ssl;
-    ssl on;
-    server_name_in_redirect {{'{{'}} $v.server_name_in_redirect_ssl }};
-    server_name             {{'{{'}} $v.server_name }}{{'{{'}}if $v.server_aliases }} {{'{{'}}$v.server_aliases}}{{'{{'}}end}};
-    ssl_ciphers             {{'{{'}} $v.ssl_ciphers }};
-    ssl_protocols           {{'{{'}} $v.ssl_protocols }};
-    ssl_certificate         {{'{{'}} $v.cert }};
-    ssl_certificate_key     {{'{{'}} $v.key }};
-    ssl_session_cache  shared:SSL:10m;
-    ssl_session_timeout 10m;
-    ssl_prefer_server_ciphers on;
-    ssl_dhparam {{'{{'}} $v.diffie }};
-    error_log  /logs/ssl-drupal-error.log  crit;
-    access_log /logs/ssl-drupal-access.log custom_combined if=$method_loggable;
-
-    {%if not cookiecutter.remove_varnish%}
-    {{'{{'}} template "vhost_proxy" $v }}
-    {% else %}
-    {{'{{'}} template "vhost" $v }}
-    {% endif %}
-}
-{{'{{'}} end }}

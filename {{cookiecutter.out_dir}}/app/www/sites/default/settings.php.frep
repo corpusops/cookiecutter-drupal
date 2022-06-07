@@ -5,6 +5,7 @@ ini_set('session.gc_divisor', 100);
 ini_set('session.gc_maxlifetime', 200000);
 ini_set('session.cookie_lifetime', 2000000);
 
+#$settings['container_yamls'][] = "$root/config/services.yml";
 $settings['config_sync_directory'] = "$root/config/sync";
 
 $base_url = '{{ '{{ ' }}.Env.ABSOLUTE_URL_SCHEME }}://{{ '{{ ' }}.Env.ABSOLUTE_URL_DOMAIN }}:{{ '{{ ' }}.Env.ABSOLUTE_URL_PORT }}';
@@ -12,7 +13,7 @@ $base_url = '{{ '{{ ' }}.Env.ABSOLUTE_URL_SCHEME }}://{{ '{{ ' }}.Env.ABSOLUTE_U
 // at least you have a copy in variables, if needed
 $conf['base_url'] = $base_url;
 
-// D8 settings to "replace" $base_url configuration in D7 
+// D8 settings to "replace" $base_url configuration in D7
 $settings['trusted_host_patterns'] = array('^localhost|{{ '{{ ' }} .Env.DRUPAL__ALLOWED_HOSTS }}$');
 
 $databases = array();
@@ -23,7 +24,7 @@ $databases['default']['default'] = array(
   'password' => '{{ '{{ ' }}.Env.DATABASE_PASSWD }}',
   'host' => '{{ '{{ ' }}.Env.DATABASE_HOST }}',
   'port' => '{{ '{{ ' }}.Env.DATABASE_PORT }}',
-  {% if cookiecutter.db_mode == 'mysql' -%} 
+  {% if cookiecutter.db_mode == 'mysql' -%}
   'collation' => 'utf8_general_ci',
   'namespace' => 'Drupal\\Core\\Database\\Driver\\mysql',
   {%- endif %}
@@ -31,7 +32,7 @@ $databases['default']['default'] = array(
 );
 
 //$settings['reverse_proxy'] = '127.0.0.1,127.0.0.2';
-//$settings['reverse_proxy_header'] = 
+//$settings['reverse_proxy_header'] =
 //$settings['reverse_proxy_addresses'] =
 $settings['update_free_access'] = FALSE;
 $drupal_hash_salt = '{{ '{{ ' }}.Env.APP_SECRET }}';
@@ -86,7 +87,7 @@ $settings['file_chmod_file']=0664;
 umask(0000);
 
 // Log level //////////////////////////////////////////////////////////////////
-// allowed values: 'hide', 'some', 'all', 'verbose'. 
+// allowed values: 'hide', 'some', 'all', 'verbose'.
 // $config['system.logging']['error_level'] = 'verbose';
 
 // Compression ////////////////////////////////////////////////////////////////
@@ -109,6 +110,44 @@ $config['system.performance']['fast_404']['paths'] = '/\.(?:txt|png|gif|jpe?g|cs
 $config['system.performance']['fast_404']['html'] = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML+RDFa 1.0//EN" "http://www.w3.org/MarkUp/DTD/xhtml-rdfa-1.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL "@path" was not found on this server.</p></body></html>';
 
 $settings['allow_authorize_operations'] = FALSE;
+
+// D8 config sync directory, better outside webroot than in a random directory in sites/default/files
+//$config_directories = array(
+//    'staging' => "$root/config/staging",
+//    'sync' => "$root/config/sync",
+//    'to_dev' => "$root/config/to_dev",
+//);
+
+$settings['file_scan_ignore_directories'] = [
+  'node_modules',
+  'bower_components',
+];
+
+// $settings['install_profile'] = 'foo';
+
+// SMTP Config is totally handled via .env and docker entry point
+// $config['system.mail']['interface']['default']= 'SMTPMailSystem';
+// $config['smtp.settings']['smtp_on'] = true;
+// $config['smtp.settings']['smtp_host'] = 'mailcatcher';
+// $config['smtp.settings']['smtp_port'] = '1025';
+// $config['smtp.settings']['smtp_username']= '';
+// $config['smtp.settings']['smtp_password']= '';
+
+
+## 12 factors (https://12factor.net/) compatible environment settings load
+## $config['smtp_settings']['smtp_host']=bar <- $DRUPAL_SETTINGS__smtp_settings___smtp_host=bar
+{{'{{-'}} $knob := "DRUPAL_SETTINGS__" }}
+{{'{{-'}} $typknob := "raw:::" }}
+{{'{{-'}} range $envvar := .Env | keys | sortAlpha }}
+{{'{{-'}} if hasPrefix $knob $envvar }}
+{{'{{-'}} $conf := ( split $knob $envvar )._1 }}
+{{'{{-'}} $configname := ( split "___" $conf )._0 | replace "_DOT_" "." }}
+{{'{{-'}} $key        := ( split "___" $conf )._1 }}
+{{'{{-'}} $value      := index $.Env $envvar }}
+$config['{{'{{'}} $configname }}']{{'{{-'}} range $keyn := $key | splitList "_DOT_" }}['{{'{{'}}$keyn}}']{{'{{'}}end}} = {{'{{'}} if hasPrefix $typknob $value }}{{'{{'}}trimPrefix $typknob $value}}{{'{{'}}else }}{{'{{'}}$value|quote}}{{'{{'}}end}};
+{{'{{-'}} end }}
+{{'{{-'}} end }}
+
 
 $localsettingsfile = DRUPAL_ROOT . "/sites/default/local.settings.php";
 if (file_exists($localsettingsfile)) {
