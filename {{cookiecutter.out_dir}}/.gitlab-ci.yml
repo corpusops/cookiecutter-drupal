@@ -359,6 +359,9 @@ teardown_env: &teardown_env
   variables: &deploy_vars
     NONINTERACTIVE: "1"
     DEPLOY_PLAYBOOK: ".ansible/playbooks/app.yml"
+    # you can use this on specific jobs to also backup databases & files prior to deliery
+    # think in thise case to also setup what's to do in ansible inventory (files, medias or not)
+    # DEPLOY_PLAYBOOK: ".ansible/playbooks/delivery.yml"
     NO_SILENT: ""
     A_ENV_NAME: "$CI_COMMIT_REF_NAME"
   before_script:

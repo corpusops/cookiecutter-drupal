@@ -16,11 +16,19 @@ cops_{{cookiecutter.app_type}}_varnish_docker_tag: "{{'{{'}}cops_{{cookiecutter.
 {% if 'post' in cookiecutter.db_mode -%}
 cops_{{cookiecutter.app_type}}_postgres_startup_timeout: 45s
 {%- endif %}
+cops_drupal_has_mailcatcher: true
+cops_drupal_nginx_redirect_aliases: false
 cops_{{cookiecutter.app_type}}_dotenv_extra: |-
   # db
   {% if 'post' in cookiecutter.db_mode %}POSTGRES_STARTUP_TIMEOUT={{'{{'}}cops_{{cookiecutter.app_type}}_postgres_startup_timeout}}{% endif %}
+  NGINX_HAS_MAILCATCHER={{cops_drupal_has_mailcatcher and "1" or "0" }}
+  NGINX_REDIRECT_ALIASES={{cops_drupal_nginx_redirect_aliases and "1" or "0" }}
 cops_drupal_http_protect_user: "root"
 cops_drupal_http_protect_password: "rootroot"
 {% if not cookiecutter.remove_varnish -%}
 cops_drupal_use_varnish: true
 {%- endif %}
+
+# uncomment to only save only bdd on delivery
+# cops_drupal_backup_docker_volumes: []
+# cops_drupal_backup_paths_to_backup: []

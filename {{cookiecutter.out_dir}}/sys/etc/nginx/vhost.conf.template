@@ -13,6 +13,7 @@
 {{'{{-'}} end -}}
 {{'{{-'}} $v := merge $v ( dict "server_name"                 ( .Env.NGINX_SERVERNAME | default "localhost" )                                ) -}}
 {{'{{-'}} $v := merge $v ( dict "server_aliases"              ( .Env.NGINX_SERVER_ALIASES | default "" )                                     ) -}}
+{{'{{-'}} $v := merge $v ( dict "redirect_aliases"            ( .Env.NGINX_REDIRECT_ALIASES | default "0" )                                  ) -}}
 {{'{{-'}} $v := merge $v ( dict "server_name_in_redirect"     ( .Env.NGINX_SERVERNAME_IN_REDIRECT | default "on" )                           ) -}}
 {{'{{-'}} $v := merge $v ( dict "server_name_in_redirect_ssl" ( .Env.NGINX_SERVERNAME_IN_REDIRECT_SSL | default $v.server_name_in_redirect ) ) -}}
 {{'{{-'}} $v := merge $v ( dict "real_ip_from_recursive"      ( .Env.NGINX_REAL_IP_FROM_RECURSIVE | default "on" )                           ) -}}
@@ -20,6 +21,7 @@
 {{'{{-'}} $v := merge $v ( dict "ssl_ciphers"                 ( .Env.NGINX_SSL_CIPHERS | default $dciphers )                                 ) -}}
 {{'{{-'}} $v := merge $v ( dict "ssl_protocols"               ( .Env.NGINX_SSL_PROTOCOLS | default "TLSv1 TLSv1.1 TLSv1.2" )                 ) -}}
 {%if not cookiecutter.remove_varnish%}
+{{'{{-'}} $v := merge $v ( dict "has_mailcatcher"             ( .Env.NGINX_HAS_MAILCATCHER | default "1" )                                   ) -}}
 {{'{{-'}} $v := merge $v ( dict "varnish_nginx_secret"        ( .Env.VARNISH_NGINX_SHARED_SECRET | default "shared_secret_stuff" )           ) -}}
 {% endif %}
 {{'{{-'}} $v := merge $v ( dict "loglevel"                    ( .Env.NGINX_LOGLEVEL | default "crit" )                                       ) -}}
@@ -80,12 +82,40 @@ map $http_x_forwarded_host $best_http_host {
     ''               $this_host;
 }
 
+{{'{{'}}if and (eq $v.redirect_aliases "1" ) ( $v.server_aliases ) }}
+# REDIRECT ALIASES VHOSTS -----------
+server {
+    listen 443 ssl;
+    ssl on;
+    server_name {{'{{'}}$v.server_aliases}};
+    ssl_ciphers {{'{{'}} $v.ssl_ciphers }};
+    ssl_protocols {{'{{'}} $v.ssl_protocols }};
+    ssl_certificate {{'{{'}} $v.cert }};
+    ssl_certificate_key {{'{{'}} $v.key }};
+    ssl_session_cache  shared:SSL:10m;
+    ssl_session_timeout 10m;
+    ssl_prefer_server_ciphers on;
+    ssl_dhparam {{'{{'}} $v.diffie }};
+    error_log  /logs/drupal-redirector-error.log  {{'{{'}} $v.loglevel }};
+    access_log /logs/drupal-redirector-access.log custom_combined if=$method_loggable;
+    rewrite ^(.*)$ ${forwarded_ssl_scheme}://{{'{{'}}$v.server_name}}$request_uri permanent;
+}
+server {
+    listen 80;
+    server_name {{'{{'}}$v.server_aliases}};
+    error_log  /logs/drupal-redirector-error.log  {{'{{'}} $v.loglevel }};
+    access_log /logs/drupal-redirector-access.log custom_combined if=$method_loggable;
+    rewrite ^(.*)$ ${forwarded_ssl_scheme}://{{'{{'}}$v.server_name}}$request_uri permanent;
+}
+{{'{{'}} end }}
+
+
 {%if not cookiecutter.remove_varnish%}
 # FRONT HTTP ------------------------
 server {
     listen 80;
 
-    server_name {{'{{'}} $v.server_name }}{{'{{'}}if $v.server_aliases }} {{'{{'}}$v.server_aliases}}{{'{{'}}end}};
+    server_name {{'{{'}} $v.server_name }}{{'{{'}} if and (ne $v.redirect_aliases "1" ) ( $v.server_aliases ) }} {{'{{'}}$v.server_aliases}}{{'{{'}}end}};
     server_name_in_redirect {{'{{'}} $v.server_name_in_redirect }};
 
     error_log  /logs/drupal-front-error.log {{'{{'}} $v.loglevel }};
@@ -131,10 +161,12 @@ server {
     {{'{{'}} if eq .noforcessl "1" }}# {{'{{'}}end }}if ($forwarded_ssl_scheme != "https"){ rewrite ^(.*)$ https://$host$1 permanent; }
 
 
+    {{'{{'}} if eq .has_mailcatcher "1" }}
     location ~ ^/mailcatcher/ {
         auth_basic off;
         proxy_pass http://mailcatcher:8025;
     }
+    {{'{{'}} end }}
 
     # SSL -> Nginx -> Varnish -> Nginx-internal:80
     location / {
@@ -157,7 +189,7 @@ server {
     listen 443 ssl;
     ssl on;
     server_name_in_redirect {{'{{'}} $v.server_name_in_redirect_ssl }};
-    server_name             {{'{{'}} $v.server_name }}{{'{{'}}if $v.server_aliases }} {{'{{'}}$v.server_aliases}}{{'{{'}}end}};
+    server_name             {{'{{'}} $v.server_name }}{{'{{'}}if and (ne $v.redirect_aliases "1" ) ( $v.server_aliases ) }} {{'{{'}}$v.server_aliases}}{{'{{'}}end}};
     ssl_ciphers             {{'{{'}} $v.ssl_ciphers }};
     ssl_protocols           {{'{{'}} $v.ssl_protocols }};
     ssl_certificate         {{'{{'}} $v.cert }};
@@ -192,9 +224,9 @@ server {
     listen 80;
 
     {%if not cookiecutter.remove_varnish%}
-    server_name internal-{{'{{'}} $v.server_name }}{{'{{-'}}if $v.server_aliases }}{{'{{'}}- range $v.server_aliases | splitList " " }} internal-{{'{{'}} . }}{{'{{'}}- end }}{{'{{- '}}end}};
+    server_name internal-{{'{{'}} $v.server_name }}{{'{{'}}- if and (ne $v.redirect_aliases "1" ) ( $v.server_aliases ) }}{{'{{'}}- range $v.server_aliases | splitList " " }} internal-{{'{{'}} . }}{{'{{'}}- end }}{{'{{'}}- end }};
     {% else %}
-    server_name {{'{{'}} $v.server_name }}{{'{{'}}if $v.server_aliases }} {{'{{'}}$v.server_aliases}}{{'{{'}}end}};
+    server_name {{'{{'}} $v.server_name }}{{'{{'}}- if and (ne $v.redirect_aliases "1" ) ( $v.server_aliases ) }} {{'{{'}}$v.server_aliases}}{{'{{'}}end}};
     {% endif %}
     server_name_in_redirect {{'{{'}} $v.server_name_in_redirect }};
 
@@ -311,12 +343,14 @@ server {
             return 503;
         }
 
+        {{'{{'}} if eq $v.has_mailcatcher "1" }}
         location ~ ^/mailcatcher/ {
             {{'{{'}} if .Env.DRUPAL__HTTP_PROTECT_PASSWORD }}
             auth_basic off;
             {{'{{'}} end }}
             proxy_pass http://mailcatcher:8025;
         }
+        {{'{{'}} end }}
 
         # Allow "Well-Known URIs" as per RFC 5785
         location ~* ^/.well-known/ {
