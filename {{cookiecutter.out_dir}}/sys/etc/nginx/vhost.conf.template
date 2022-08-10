@@ -98,14 +98,14 @@ server {
     ssl_dhparam {{'{{'}} $v.diffie }};
     error_log  /logs/drupal-redirector-error.log  {{'{{'}} $v.loglevel }};
     access_log /logs/drupal-redirector-access.log custom_combined if=$method_loggable;
-    rewrite ^(.*)$ ${forwarded_ssl_scheme}://{{'{{'}}$v.server_name}}$request_uri permanent;
+    rewrite ^(.*)$ ${forwarded_ssl_scheme}://{{'{{'}}$v.server_name}}$request_uri redirect;
 }
 server {
     listen 80;
     server_name {{'{{'}}$v.server_aliases}};
     error_log  /logs/drupal-redirector-error.log  {{'{{'}} $v.loglevel }};
     access_log /logs/drupal-redirector-access.log custom_combined if=$method_loggable;
-    rewrite ^(.*)$ ${forwarded_ssl_scheme}://{{'{{'}}$v.server_name}}$request_uri permanent;
+    rewrite ^(.*)$ ${forwarded_ssl_scheme}://{{'{{'}}$v.server_name}}$request_uri redirect;
 }
 {{'{{'}} end }}
 
@@ -158,7 +158,7 @@ server {
         rewrite ^(.*)$ /maintenance.html break;
     }
 
-    {{'{{'}} if eq .noforcessl "1" }}# {{'{{'}}end }}if ($forwarded_ssl_scheme != "https"){ rewrite ^(.*)$ https://$host$1 permanent; }
+    {{'{{'}} if eq .noforcessl "1" }}# {{'{{'}}end }}if ($forwarded_ssl_scheme != "https"){ rewrite ^(.*)$ https://$host$1 redirect; }
 
 
     {{'{{'}} if eq .has_mailcatcher "1" }}
@@ -312,9 +312,9 @@ server {
     }
 
     {%if cookiecutter.remove_varnish%}
-    {{'{{'}} if eq .noforcessl "1" }}# {{'{{'}}end }}if ($forwarded_ssl_scheme != "https"){ rewrite ^(.*)$ https://$host$1 permanent; }
+    {{'{{'}} if eq .noforcessl "1" }}# {{'{{'}}end }}if ($forwarded_ssl_scheme != "https"){ rewrite ^(.*)$ https://$host$1 redirect; }
     {% else %}
-    {{'{{'}} if eq $v.noforcessl "1" }}# {{'{{'}} end }}if ($forwarded_ssl_scheme != "https"){ rewrite ^(.*)$ https://$host_ok$1 permanent; }
+    {{'{{'}} if eq $v.noforcessl "1" }}# {{'{{'}} end }}if ($forwarded_ssl_scheme != "https"){ rewrite ^(.*)$ https://$host_ok$1 redirect; }
     {% endif %}
 
     # static optimisations
