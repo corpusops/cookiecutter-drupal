@@ -69,14 +69,13 @@ services:
   backup: {<<: [ *bypass ]}
   {%- if not cookiecutter.remove_cron %}
   cron:
-    <<: [ *bypass ]
-    <<: [ *{{cookiecutter.app_type}} ]
+    <<: [ *bypass,  *{{cookiecutter.app_type}} ]
   {% endif %}
   {{cookiecutter.app_type}}:
     <<: [ *{{cookiecutter.app_type}} ]
     environment:
       <<: [ *{{cookiecutter.app_type}}_env ]
       IMAGE_MODE: phpfpm
-      PHP_XDEBUG_REMOTE: 1
-      PHP_XDEBUG_IP: host.docker.internal
-      PHP_XDEBUG_PORT: 9000
+      PHP_XDEBUG_REMOTE: ${PHP_XDEBUG_REMOTE-1}
+      PHP_XDEBUG_IP: ${PHP_XDEBUG_IP-host.docker.internal}
+      PHP_XDEBUG_PORT: ${PHP_XDEBUG_PORT-9000}
