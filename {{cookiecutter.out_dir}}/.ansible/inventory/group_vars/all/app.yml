@@ -21,8 +21,8 @@ cops_drupal_nginx_redirect_aliases: false
 cops_{{cookiecutter.app_type}}_dotenv_extra: |-
   # db
   {% if 'post' in cookiecutter.db_mode %}POSTGRES_STARTUP_TIMEOUT={{'{{'}}cops_{{cookiecutter.app_type}}_postgres_startup_timeout}}{% endif %}
-  NGINX_HAS_MAILCATCHER={{cops_drupal_has_mailcatcher and "1" or "0" }}
-  NGINX_REDIRECT_ALIASES={{cops_drupal_nginx_redirect_aliases and "1" or "0" }}
+  NGINX_HAS_MAILCATCHER={{'{{'}}cops_drupal_has_mailcatcher and "1" or "0" }}
+  NGINX_REDIRECT_ALIASES={{'{{'}}cops_drupal_nginx_redirect_aliases and "1" or "0" }}
 cops_drupal_http_protect_user: "root"
 cops_drupal_http_protect_password: "rootroot"
 {% if not cookiecutter.remove_varnish -%}

@@ -20,12 +20,13 @@ services:
     restart: unless-stopped
     ports:
     - "${DRUPAL_HTTP_LISTEN:-0.0.0.0}:${DRUPAL_HTTP_PORT:-80}:80"
+    - "${DRUPAL_HTTPS_LISTEN:-0.0.0.0}:${DRUPAL_HTTPS_PORT:-443}:443"
   {{cookiecutter.app_type}}:
     restart: unless-stopped
     <<: [ *{{cookiecutter.app_type}} ]
     ports:
     - "${DRUPAL_API_LISTEN:-127.0.0.1}:${DRUPAL_API_PORT:-9000}:9000"
-  {% if not cookiecutter.remove_cron %}
+{% if not cookiecutter.remove_cron %}
   cron:
     restart: unless-stopped
   {%- endif%}
@@ -33,7 +34,7 @@ services:
     restart: unless-stopped
   mailcatcher:
     restart: unless-stopped
-  {%if cookiecutter.with_redis%}
+{%if cookiecutter.with_redis%}
   redis:
     restart: unless-stopped
   {%endif%}

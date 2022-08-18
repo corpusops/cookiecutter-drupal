@@ -18,6 +18,7 @@ __pycache__
 .settings
 .project
 .vscode
+.history
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
@@ -60,6 +61,8 @@ npm-debug.log
 testem.log
 yarn-error.log
 /typings
+/.editorconfig
+/.gitattributes
 *~
 
 # e2e
@@ -69,3 +72,4 @@ yarn-error.log
 
 #System Files
 .DS_Store
+/vendor

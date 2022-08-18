@@ -1,4 +1,11 @@
 #!/bin/bash
+
+# If you need more debug play with these variables:
+# export NO_STARTUP_LOGS=
+# export SHELL_DEBUG=1
+# export DEBUG=1
+# start by the first one, then try the others
+
 set -e
 readlinkf() {
     if ( uname | egrep -iq "darwin|bsd" );then
@@ -40,6 +47,10 @@ fi
 CONTROL_COMPOSE_FILES="${CONTROL_COMPOSE_FILES:-$DEFAULT_CONTROL_COMPOSE_FILES}"
 COMPOSE_COMMAND=${COMPOSE_COMMAND:-docker-compose}
 ENV_FILES="${ENV_FILES:-.env docker.env}"
+# special case: be sure to define some docker internal variables but let them overridable through .env
+export DOCKER_BUILDKIT=${DOCKER_BUILDKIT-1}
+export COMPOSE_DOCKER_CLI_BUILD=${COMPOSE_DOCKER_CLI_BUILD-1}
+export BUILDKIT_PROGRESS=${BUILDKIT_PROGRESS-plain}
 
 join_by() { local IFS="$1"; shift; echo "$*"; }
 

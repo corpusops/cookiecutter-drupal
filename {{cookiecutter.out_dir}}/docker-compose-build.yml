@@ -5,7 +5,10 @@ x-images:
     build:
       context: "."
       args:
+        BUILDKIT_INLINE_CACHE: "1"
+        BASE: "${DRUPAL_BASE_IMAGE:-corpusops/ubuntu-bare:20.04}"
         PHP_VER: "${PHP_VER:-{{cookiecutter.php_ver}}}"
+        PHP_GROUP: "${PHP_GROUP-apache}"
         PHP_VER_NO_DOT: "${PHP_VER_NO_DOT:-{{cookiecutter.php_ver|replace('.','')}}}"
         COMPOSER_VERSION: "${COMPOSER_VERSION:-{{cookiecutter.composer_ver}}}"
 services:
@@ -13,15 +16,13 @@ services:
   {%-if not cookiecutter.remove_varnish%}
   varnish:
     <<: [ *env ]
-    build:
-      context: "."
-      dockerfile: "Dockerfile-Varnish"
+    build: {context: ".", dockerfile: "Dockerfile-Varnish"}
   {%-endif%}
   {%-if not cookiecutter.remove_doc%}
   docs:
     <<: [ *env, *drupal ]
     image: "${{'{'}}{{cookiecutter.app_type.upper()}}_IMAGE}:${{'{'}}{{cookiecutter.app_type.upper()}}_IMAGE_VERSION}-dev-docs"
-    build: {context: ".", dockerfile: docs/Dockerfile}
+    build: {context: ".", dockerfile: "Dockerfile-docs"}
     volumes:
     - ./docs:/code/docs.host
     - ./app:/code/app.host

@@ -1,3 +1,0 @@
-[program:cron]
-autorestart=false
-command=/usr/sbin/crond -n

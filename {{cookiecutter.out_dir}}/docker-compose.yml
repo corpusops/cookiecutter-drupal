@@ -4,18 +4,20 @@ x-images:
   env: &env
     env_file: [.env, docker.env]
     environment: &env_vars
-      PHP_USER: "{{cookiecutter.php_user}}"
+      PHP_USER: "${PHP_USER-{{cookiecutter.php_user}}}"
       PHP_GROUP: "${PHP_GROUP-{{cookiecutter.php_group}}}"
       DRUPAL_ENV_NAME: "${DRUPAL_ENV_NAME-prod}"
-      APP_SECRET: "${APP_SECRET:-77fd8b950969a6909c46ab0b6fd5d062}"
-      APP_SECRET: "${APP_SECRET-11111111111111111111111111111111}"
-      APP_TYPE: "{{cookiecutter.app_type}}"
+      APP_SECRET: "${APP_SECRET-77fd8b950969a6909c46ab0b6fd5d062}"
       IMAGE_MODE: phpfpm
+      APP_TYPE: {{cookiecutter.app_type}}
+      # docker variables that can be overriden via .env/docker.env
+      # This need to be changed in production
+      MAILCATCHER_USER: "${MAILCATCHER_USER-mailcatcher}"
+      MAILCATCHER_PASSWORD: "${MAILCATCHER_PASSWORD-mailcatcher}"
       # parsed/replaced in CI via env-subst
-      DRUPAL_NAME: "${DRUPAL_NAME-{{cookiecutter.drupal_project_name}}}"
       # Used in INSTALL ---------------
       PROFILE_NAME: "${PROFILE_NAME-{{ cookiecutter.profile_name }}}"
-      SITE_NAME: "${SITE_NAME-{{ cookiecutter.name }}}"
+      SITE_NAME: "${SITE_NAME-{{ cookiecutter.site_name }}}"
       SITE_MAIL: "${SITE_MAIL-contact@{{ cookiecutter.mail_domain }}}"
       ADMIN_MAIL: "${ADMIN_MAIL-sysadmin+{{ cookiecutter.lname }}@{{ cookiecutter.mail_domain }}}"
       ADMIN_NAME: "${ADMIN_NAME-admin}"
@@ -31,11 +33,11 @@ x-images:
       # Key settings ------------------
       NGINX_SERVERNAME: "${NGINX_SERVERNAME-{{cookiecutter.local_domain}}}"
       NGINX_SERVER_ALIASES: "${NGINX_SERVER_ALIASES-www.{{cookiecutter.local_domain}} www2.{{cookiecutter.local_domain}}}"
-      DRUPAL__ALLOWED_HOSTS: "${DRUPAL__ALLOWED_HOSTS-{{cookiecutter.local_domain.replace(".","\\\\.")}}|www\\\\.{{cookiecutter.local_domain.replace(".","\\\\.")}}|www2\\\\.{{cookiecutter.local_domain.replace(".","\\\\.")}}}"
+      DRUPAL__ALLOWED_HOSTS: "${DRUPAL__ALLOWED_HOSTS-{{cookiecutter.local_domain.replace(".","\\\\.")}}|www\\.{{cookiecutter.local_domain.replace(".","\\\\.")}}|www2\\.{{cookiecutter.local_domain.replace(".","\\\\.")}}}"
       DRUPAL__HTTP_PROTECT_USER: "${DRUPAL__HTTP_PROTECT_USER-}"
       DRUPAL__HTTP_PROTECT_PASSWORD: "${DRUPAL__HTTP_PROTECT_PASSWORD-}"
       DATABASE_PREFIX: "${DATABASE_PREFIX-}"
-      {% if 'post' in cookiecutter.db_mode %}
+{% if 'post' in cookiecutter.db_mode %}
       POSTGRES_STARTUP_TIMEOUT: "${POSTGRES_STARTUP_TIMEOUT-45s}"
       POSTGRES_HOST: "${POSTGRES_HOST-db}"
       POSTGRES_PORT: "${POSTGRES_PORT-5432}"
@@ -50,7 +52,7 @@ x-images:
       DATABASE_PASSWD: "${POSTGRES_PASSWORD-password}"
       DATABASE_HOST: "${POSTGRES_HOST-db}"
       DATABASE_PORT: "${POSTGRES_PORT-5432}"
-      {% elif 'mysql' in cookiecutter.db_mode %}
+{% elif 'mysql' in cookiecutter.db_mode %}
       MYSQL_HOST: "${MYSQL_HOST-db}"
       MYSQL_PORT: "${MYSQL_PORT-3306}"
       MYSQL_DATABASE: "${MYSQL_DATABASE-db}"
@@ -62,7 +64,7 @@ x-images:
       DATABASE_PASSWD: "${MYSQL_PASSWORD-password}"
       DATABASE_HOST: "${MYSQL_HOST-db}"
       DATABASE_PORT: "${MYSQL_PORT-3306}"
-      {% else %}
+{% else %}
       DB_HOST: "${DB_HOST-db}"
       DB_PORT: "${DB_PORT-}"
       DB_NAME: "${DB_NAME-sites/default/files/.ht5.sqlite}"
@@ -74,7 +76,7 @@ x-images:
       DATABASE_PASSWD: "${DB_PASSWORD-password}"
       DATABASE_HOST: "${DB_HOST-db}"
       DATABASE_PORT: "${DB_PORT-}"
-      {% endif %}
+{% endif %}
       #
       COOKIE_DOMAIN: "${COOKIE_DOMAIN-{{cookiecutter.local_domain}}}"
       ABSOLUTE_URL_SCHEME: "${ABSOLUTE_URL_SCHEME-http}"
@@ -91,21 +93,18 @@ x-images:
       VARNISH_MEMORY_SIZE: "${VARNISH_MEMORY_SIZE-256MB}"
       VARNISH_HIDE_X_CACHE_TAGS: "${VARNISH_HIDE_X_CACHE_TAGS-}"
       VARNISH_BACKENDS: "${VARNISH_BACKENDS-nginx}"
-      # VARNISH_NO_CACHE_COOKIE: "${VARNISH_NO_CACHE_COOKIE-NO_CACHE}"
-      # VARNISH_NO_CACHE_URL: "${VARNISH_NO_CACHE_URL-/foo/bar/}"
+      VARNISH_NO_CACHE_COOKIE: "${VARNISH_NO_CACHE_COOKIE-{{cookiecutter.no_cache_cookie}}}"
+      VARNISH_NO_CACHE_URL: "${VARNISH_NO_CACHE_URL-{{cookiecutter.no_cache_url}}}"
       VARNISH_TTL_STATIC: "${VARNISH_TTL_STATIC-3h}"
       VARNISH_TTL_STATIC_BROWSER: "${VARNISH_TTL_STATIC_BROWSER-86400}"
-      # This need to be changed in production
-      MAILCATCHER_USER: "${MAILCATCHER_USER-mailcatcher}"
-      MAILCATCHER_PASSWORD: "${MAILCATCHER_PASSWORD-mailcatcher}"
       # Mail
-      DRUPAL_SETTINGS__SYSTEM_DOT_MAIL___INTERFACE_DOT_DEFAULT: "${DRUPAL_SETTINGS__SYSTEM_DOT_MAIL___INTERFACE_DOT_DEFAULT-SMTPMailSystem}"
-      DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_HOST: "${DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_HOST-mailcatcher}"
-      DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_PORT: "${DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_PORT-1025}"
-      DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_PROTOCOL: "${DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_PROTOCOL-standard}"
-      DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_AUTOTLS: "${DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_AUTOTLS-true}"
-      DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_USERNAME: "${DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_USERNAME-mailcatcher}"
-      DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_PASSWORD: "${DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_PASSWORD-mailcatcher}"
+      DRUPAL_SETTINGS__system_DOT_mail___interface_DOT_default: "${DRUPAL_SETTINGS__system_DOT_mail___interface_DOT_default-SMTPMailSystem}"
+      DRUPAL_SETTINGS__smtp_DOT_settings___smtp_host:     "${DRUPAL_SETTINGS__smtp_DOT_settings___smtp_host-mailcatcher}"
+      DRUPAL_SETTINGS__smtp_DOT_settings___smtp_port:     "${DRUPAL_SETTINGS__smtp_DOT_settings___smtp_port-1025}"
+      DRUPAL_SETTINGS__smtp_DOT_settings___smtp_protocol: "${DRUPAL_SETTINGS__smtp_DOT_settings___smtp_protocol-standard}"
+      DRUPAL_SETTINGS__smtp_DOT_settings___smtp_autotls:  "${DRUPAL_SETTINGS__smtp_DOT_settings___smtp_autotls-raw:::true}"
+      DRUPAL_SETTINGS__smtp_DOT_settings___smtp_username: "${DRUPAL_SETTINGS__smtp_DOT_settings___smtp_username-mailcatcher}"
+      DRUPAL_SETTINGS__smtp_DOT_settings___smtp_password: "${DRUPAL_SETTINGS__smtp_DOT_settings___smtp_password-mailcatcher}"
 
   {{cookiecutter.app_type}}: &{{cookiecutter.app_type}}
     <<: [ *env ]
@@ -113,13 +112,12 @@ x-images:
     image: "${{'{'}}{{cookiecutter.app_type.upper()}}_IMAGE}:${{'{'}}{{cookiecutter.app_type.upper()}}_IMAGE_VERSION}-dev"
     environment: &{{cookiecutter.app_type}}_env
       <<: [ *env_vars ]
-      # docker variables
-      PROJECT_PACKAGE: "{{cookiecutter.drupal_project_name}}"
-      PROJECT_DIR: "/code/app/"
+      PROJECT_PACKAGE: "${PROJECT_PACKAGE-{{cookiecutter.drupal_project_name}}}"
+      PROJECT_DIR: "${PROJECT_DIR-/code/app/}"
     depends_on:
     - db
     - setup-{{db_tag}}
-    {%if cookiecutter.with_redis%}- redis{%endif%}
+{%if cookiecutter.with_redis%}    - redis{%endif%}
     working_dir: /code/app
     command:
     - /bin/sh
@@ -129,17 +127,16 @@ x-images:
       && echo "launching init.sh"
       && /init.sh
     volumes:
-      # - ./sys/crontab:/etc/cron.d/drupal # nope -> chown root done on that file, prefer a COPY, or a template
       - logs:/logs/
       - publiccontrib:{{cookiecutter.public_files_path}}/
       - private:{{cookiecutter.private_path}}/
-      - cache:{{cookiecutter.cache_path}}
+      #- cache:{{cookiecutter.cache_path}}
       # volume that we need to feed for nginx docker
       - webroot:/code/app/var/nginxwebroot
       {%-if not cookiecutter.remove_doc%}
       # host doc dir mounted inside container
       - ./app/var/private/docs:/code/app/var/private/docs
-      {%endif%}
+{%endif%}
       - ./data:/code/data
 services:
   mailcatcher:
@@ -165,14 +162,14 @@ services:
         && pw=$$(MH_AUTH_FILE="" MailHog bcrypt "$${MAILCATCHER_PASSWORD:-mailcatcher}")
         && echo "$${MAILCATCHER_USER:-mailcatcher}:$$pw" > $$MH_AUTH_FILE
         && su mailhog -p -c MailHog
-  {%if cookiecutter.with_redis%}
+{%if cookiecutter.with_redis%}
   redis:
     <<: [ *env ]
     image: "{{cookiecutter.redis_image}}"
     hostname: redis
     volumes:
       - 'redis:/data'
-  {%endif%}
+{%endif%}
   db:
     <<: [ *env ]
     image: "{{cookiecutter["{0}_image".format(cookiecutter.db_mode)]}}"
@@ -183,10 +180,10 @@ services:
     <<: [ *env ]
     # image: "corpusops/varnish"
     image: "${VARNISH_IMAGE}:${VARNISH_IMAGE_VERSION}-dev"
-    volumes:
-      - ./sys/etc/varnish/varnish.vcl.frep:/docker/sys/etc/varnish/varnish.vcl.frep
     depends_on:
       - nginx
+    volumes:
+      - ./sys/etc/varnish/varnish.vcl.frep:/docker/sys/etc/varnish/varnish.vcl.frep
     links:
       # for BAN request allow
       - "cron:cron"
@@ -244,7 +241,7 @@ services:
       NO_INSTALL: "1"
     depends_on:
     - {{cookiecutter.app_type}}
-  {% endif %}
+{% endif %}
   backup:
     <<: [ *env ]
     image: "corpusops/dbsmartbackup:postgres-{{cookiecutter.db_version}}"
@@ -279,12 +276,12 @@ volumes:
   backupdb-logs:
   backupdb-dumps:
   postgresql:
-  {%if cookiecutter.with_redis%}redis:{%endif%}
+{%if cookiecutter.with_redis%}  redis:{%endif%}
   nginx-certs:
   webroot:
   publiccontrib:
   private:
-  cache:
+  # cache:
   logs:
   mails:
 

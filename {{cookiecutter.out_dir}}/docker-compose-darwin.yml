@@ -6,7 +6,8 @@ x-images:
   {{cookiecutter.app_type}}: &{{cookiecutter.app_type}}
     volumes: &{{cookiecutter.app_type}}_volumes
       - ./app:/code/app.host
-      - ./app/public/:/code/app.host/public
+      - ./app/public:/code/app.host/public
+      - ./app/private:/code/app.host/private
       # remount a volume from the hyve VM for better IOs
       - osx-app:/code/app
       - ./app/var/public:/code/app/var/public
@@ -20,7 +21,8 @@ services:
   nginx:
     volumes:
       - ./app:/code/app.host
-      - ./app/var/public/:/code/app.host/var/public
+      - ./app/var/public:/code/app.host/var/public
+      - ./app/var/private:/code/app.host/var/private
       # remount a volume from the hyve VM for better IOs
       - osx-app:/code/app
       - ./app/var/public:/code/app/var/public

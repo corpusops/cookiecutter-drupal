@@ -141,7 +141,7 @@ sub vcl_recv {
         }
     }
 
-    {{'{{'}}  if $v.varnish_http_auth }}
+    {{'{{'}} if $v.varnish_http_auth }}
         # preprod only: add a simple http auth to prevent indexation
         # But not on /monitor-status.php
         if ( (! req.http.Authorization ~ "Basic {{'{{'}} $v.varnish_http_auth }}") && (! req.url ~ "^/monitor-status\.php" )) {
@@ -272,7 +272,14 @@ sub vcl_recv {
 
 sub drupal_recv {
 
-  {{'{{'}}  if ne $v.varnish_env_mode "dev" }}
+  # Do not cache admin/documentation, ACL handled by Drupal
+  if (
+      req.url ~ "^/admin/documentation/"
+    ) {
+       return (pass);
+  }
+
+  {{'{{'}} if ne $v.varnish_env_mode "dev" }}
   # Static content can be cached
   # No security problems (like tricking /admin/reports/index.php/foo.css) because
   # the admin would have no session here, so we would cache a 403
@@ -290,18 +297,18 @@ sub drupal_recv {
     ) {
        return (pass);
   }
-  {{'{{'}}  end }}
+  {{'{{'}} end }}
 
   # Uncomment this to trigger the vcl_error() subroutine,
   # which will HTML output you some variables
   # return(synth(700, 'debug'));
 
-  {{'{{'}}  if ne $v.varnish_env_mode "dev" }}
+  {{'{{'}} if ne $v.varnish_env_mode "dev" }}
   # clean static files from cookies, so that we can cache them all
   if (req.url ~ "^/sites/([^/]*)/files") {
     unset req.http.cookie;
   }
-  {{'{{'}}  end }}
+  {{'{{'}} end }}
 }
 
 
@@ -367,7 +374,7 @@ sub vcl_backend_response {
         unset beresp.http.set-cookie;
 
         # Enforce varnish TTL of static files
-        set beresp.ttl = {{'{{'}}  $v.varnish_ttl_static }};
+        set beresp.ttl = {{'{{'}} $v.varnish_ttl_static }};
 
         # will make vcl_deliver reset the Age: header
         set beresp.http.magic_age_marker = "1";
@@ -375,7 +382,7 @@ sub vcl_backend_response {
         # Enforce Browser cache control policy
         unset beresp.http.Cache-Control;
         unset beresp.http.expires;
-        set beresp.http.Cache-Control = "public, max-age={{'{{'}}  $v.varnish_ttl_static_client }}";
+        set beresp.http.Cache-Control = "public, max-age={{'{{'}} $v.varnish_ttl_static_client }}";
 
         # Specific TTL for some resources examples :
         # if (bereq.url ~ "events\.json(\?.*)?$") {
@@ -471,7 +478,7 @@ sub vcl_deliver {
         set resp.http.age = "0";
     }
 
-    {{'{{-'}}  if $v.hide_x_cache_tags }}
+    {{'{{-'}} if $v.hide_x_cache_tags }}
     # hide Cache Tagging
     unset resp.http.X-Cache-Tags;
     # this is from varnish_purger
@@ -483,7 +490,7 @@ sub vcl_deliver {
     unset resp.http.X-Varnish-Cacheable;
     unset resp.http.X-Varnish-TTL;
     unset resp.http.X-Varnish;
-    {{'{{-'}}  end }}
+    {{'{{-'}} end }}
     unset resp.http.X-Ban-Path;
     unset resp.http.X-Ban-Purge-Tags;
 }

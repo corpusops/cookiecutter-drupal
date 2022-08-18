@@ -8,7 +8,7 @@ ini_set('session.cookie_lifetime', 2000000);
 #$settings['container_yamls'][] = "$root/config/services.yml";
 $settings['config_sync_directory'] = "$root/config/sync";
 
-$base_url = '{{ '{{ ' }}.Env.ABSOLUTE_URL_SCHEME }}://{{ '{{ ' }}.Env.ABSOLUTE_URL_DOMAIN }}:{{ '{{ ' }}.Env.ABSOLUTE_URL_PORT }}';
+$base_url = '{{ '{{ ' }}.Env.ABSOLUTE_URL_SCHEME }}{{'{{'}} if ne .Env.ABSOLUTE_URL_SCHEME "" }}:{{'{{'}}end}}//{{ '{{ ' }}.Env.ABSOLUTE_URL_DOMAIN }}{{'{{'}} if ne .Env.ABSOLUTE_URL_PORT "" }}:{{ '{{ ' }}.Env.ABSOLUTE_URL_PORT }}{{'{{'}}end}}';
 // this is a hack for drush in site-install mode, overriding base_url with crap,
 // at least you have a copy in variables, if needed
 $conf['base_url'] = $base_url;
@@ -24,10 +24,10 @@ $databases['default']['default'] = array(
   'password' => '{{ '{{ ' }}.Env.DATABASE_PASSWD }}',
   'host' => '{{ '{{ ' }}.Env.DATABASE_HOST }}',
   'port' => '{{ '{{ ' }}.Env.DATABASE_PORT }}',
-  {% if cookiecutter.db_mode == 'mysql' -%}
+{% if cookiecutter.db_mode == 'mysql' -%}
   'collation' => 'utf8_general_ci',
   'namespace' => 'Drupal\\Core\\Database\\Driver\\mysql',
-  {%- endif %}
+{% endif %}
   'prefix' => '{{ '{{ ' }}.Env.DATABASE_PREFIX }}'
 );
 
@@ -153,3 +153,4 @@ $localsettingsfile = DRUPAL_ROOT . "/sites/default/local.settings.php";
 if (file_exists($localsettingsfile)) {
   include_once($localsettingsfile);
 }
+// vim:set ft=php:

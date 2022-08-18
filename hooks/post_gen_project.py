@@ -44,9 +44,9 @@ SYMLINKS_FILES = {
     ".ansible/playbooks/site.yml":
     "../../{{cookiecutter.deploy_project_dir}}/.ansible/playbooks/site.yml",  #noqa
     "docs/apt.txt": "../local/drupal-deploy-common/docs/apt.txt",  #noqa
-    "docs/Dockerfile": "../local/drupal-deploy-common/docs/Dockerfile",  #noqa
     "docs/entry.sh": "../local/drupal-deploy-common/docs/entry.sh",  #noqa
     "docs/requirements.txt": "../local/drupal-deploy-common/docs/requirements.txt",  #noqa
+    "Dockerfile-docs": "./local/drupal-deploy-common/Dockerfile-docs",  #noqa
     "Dockerfile": "{{cookiecutter.deploy_project_dir}}/Dockerfile-{{cookiecutter.base_os}}",  #noqa
     "Dockerfile-Varnish": "{{cookiecutter.deploy_project_dir}}/Dockerfile-Varnish",  #noqa
 }
@@ -85,7 +85,7 @@ sed="sed";if (uname | egrep -iq "darwin|bsd");then sed="gsed";fi
 if !($sed --version);then echo $sed not avalaible;exit 1;fi
 {%raw%}vv() {{ echo "$@">&2;"$@"; }}{%endraw%}
 {#
-{% for i in ['dev', 'prod', 'qa', 'staging'] -%}
+{% for i in ['dev', 'prod', 'qa', 'preprod', 'staging'] -%}
 {% if not cookiecutter['{0}_host'.format(i)]%}
 git rm -rf \
    .ansible/inventory/group_vars/{{i}} \

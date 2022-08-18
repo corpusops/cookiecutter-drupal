@@ -18,6 +18,7 @@ make
 libxslt-1.1
 {% if 'post' in cookiecutter.db_mode %}postgresql{{ cookiecutter.db_version }}{% endif %}
 {% if 'mysql' in cookiecutter.db_mode %}mysql{{ cookiecutter.db_version }}{% endif %}
+logrotate
 unzip
 autoconf
 automake

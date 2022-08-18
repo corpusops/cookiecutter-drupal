@@ -1,9 +1,9 @@
 {{'{{-'}} $dciphers := "EECDH+AESGCM:EDH+AESGCM:ECDHE-RSA-AES128-GCM-SHA256:AES256+EECDH:DHE-RSA-AES128-GCM-SHA256:AES256+EDH:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA:ECDHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES128-SHA256:DHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES256-GCM-SHA384:AES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA:DES-CBC3-SHA:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!MD5:!PSK:!RC4" -}}
 {{'{{-'}} $v := dict "$" $ -}}
 {{'{{-'}} $v := merge $v ( dict "Env"                           .Env) -}}
-{{'{{-'}} $v := merge $v ( dict "certspath"                   ( .Env.SSL_CERTS_PATH | default "/certs" )                                     ) --}}
-{{'{{-'}} $v := merge $v ( dict "cert"                        ( .Env.SSL_CERT_PATH | default ( print $v.certspath  "/cert.crt" ))            ) --}}
-{{'{{-'}} $v := merge $v ( dict "key"                         ( .Env.SSL_KEY_PATH  | default ( print $v.certspath  "/cert.key" ))            ) --}}
+{{'{{-'}} $v := merge $v ( dict "certspath"                   ( .Env.SSL_CERTS_PATH | default "/certs" )                                     ) -}}
+{{'{{-'}} $v := merge $v ( dict "cert"                        ( .Env.SSL_CERT_PATH | default ( print $v.certspath  "/cert.crt" ))            ) -}}
+{{'{{-'}} $v := merge $v ( dict "key"                         ( .Env.SSL_KEY_PATH  | default ( print $v.certspath  "/cert.key" ))            ) -}}
 {{'{{-'}} $v := merge $v ( dict "diffie"                      ( .Env.NGINX_DH_FILE | default ( print $v.certspath  "/dhparams.pem" ))        ) -}}
 {{'{{-'}} $v := merge $v ( dict "nossl"                       ( .Env.NO_SSL | default "1" )                                                  ) -}}
 {{'{{-'}} if not ( .Env.NO_FORCE_SSL | empty ) -}}
@@ -201,11 +201,11 @@ server {
     error_log  /logs/ssl-drupal-error.log  {{'{{'}} $v.loglevel }};
     access_log /logs/ssl-drupal-access.log custom_combined if=$method_loggable;
 
-    {%if not cookiecutter.remove_varnish%}
+{%if not cookiecutter.remove_varnish%}
     {{'{{'}} template "vhost_proxy" $v }}
-    {% else %}
+{% else %}
     {{'{{'}} template "vhost" $v }}
-    {% endif %}
+{% endif %}
 }
 {{'{{'}} end }}
 
@@ -223,28 +223,28 @@ map $http_x_zorg_caesar $varnish_origin_lockdown_failure {
 server {
     listen 80;
 
-    {%if not cookiecutter.remove_varnish%}
+{%if not cookiecutter.remove_varnish%}
     server_name internal-{{'{{'}} $v.server_name }}{{'{{'}}- if and (ne $v.redirect_aliases "1" ) ( $v.server_aliases ) }}{{'{{'}}- range $v.server_aliases | splitList " " }} internal-{{'{{'}} . }}{{'{{'}}- end }}{{'{{'}}- end }};
-    {% else %}
+{% else %}
     server_name {{'{{'}} $v.server_name }}{{'{{'}}- if and (ne $v.redirect_aliases "1" ) ( $v.server_aliases ) }} {{'{{'}}$v.server_aliases}}{{'{{'}}end}};
-    {% endif %}
+{% endif %}
     server_name_in_redirect {{'{{'}} $v.server_name_in_redirect }};
 
-    {%if not cookiecutter.remove_varnish%}
+{%if not cookiecutter.remove_varnish%}
     # Re-do our Host header wich was removed by 1st Vhost and Varnish to use the `internal-<host>` version
     set $host_ok $http_x_zorg_origin_host;
-    {% endif %}
+{% endif %}
 
     error_log  /logs/drupal-error.log {{'{{'}} $v.loglevel }};
     access_log /logs/drupal-access.log custom_combined if=$method_loggable;
 
-    {%if cookiecutter.remove_varnish%}
+{%if cookiecutter.remove_varnish%}
     {{'{{'}} define "vhost" }}
     {{'{{'}} if .Env.DRUPAL__HTTP_PROTECT_PASSWORD }}
     auth_basic            "Restricted";
     auth_basic_user_file  /etc/htpasswd-protect;
     {{'{{'}} end }}
-    {% endif %}
+{% endif %}
     gzip on;
     # adds a Vary: Accept-Encoding in the response, and it's a valid varying
     # info as we may not gzip depending on the value of Accept-Encoding
@@ -311,11 +311,11 @@ server {
         rewrite ^(.*)$ /maintenance.html break;
     }
 
-    {%if cookiecutter.remove_varnish%}
+{%if cookiecutter.remove_varnish%}
     {{'{{'}} if eq .noforcessl "1" }}# {{'{{'}}end }}if ($forwarded_ssl_scheme != "https"){ rewrite ^(.*)$ https://$host$1 redirect; }
-    {% else %}
+{% else %}
     {{'{{'}} if eq $v.noforcessl "1" }}# {{'{{'}} end }}if ($forwarded_ssl_scheme != "https"){ rewrite ^(.*)$ https://$host_ok$1 redirect; }
-    {% endif %}
+{% endif %}
 
     # static optimisations
     tcp_nodelay off;
@@ -331,12 +331,12 @@ server {
 
     location / {
 
-        {%if not cookiecutter.remove_varnish%}
+{%if not cookiecutter.remove_varnish%}
         # check shared secret with Varnish (origin lockdown)
         if ($varnish_origin_lockdown_failure) {
              return 403;
         }
-        {% endif %}
+{% endif %}
 
         # check maintenance marker on shared directory
         if (-f  $document_root/MAINTENANCE) {
@@ -385,12 +385,12 @@ server {
         }
         {{'{{'}} end }}
 
-        {%if not cookiecutter.remove_doc%}
+{%if not cookiecutter.remove_doc%}
         # Documentation
         location ~* ^/admin/documentation/.+\.(?:txt|css|js|jpe?g|gif|htc|ico|png|html|xml|woff|woff2|eot|ttf|svg|pdf|ppt|pptx|doc|docx|xls|xlsx|odt|ods|avi|mp4)$ {
             try_files $uri /index.php?$query_string;
         }
-        {% endif %}
+{% endif %}
 
         # All static files will be served directly.
         location ~* ^.+\.(?:txt|css|js|jpe?g|gif|htc|ico|png|html|xml|woff|woff2|eot|ttf|svg|pdf|ppt|pptx|doc|docx|xls|xlsx|odt|ods|avi|mp4)$ {
@@ -497,7 +497,7 @@ server {
         try_files /favicon.ico =204;
     }
 
-    {%if not cookiecutter.remove_varnish%}
+{%if not cookiecutter.remove_varnish%}
     # MONITORING/HEALTH CHECKS
     # access to this file is granted for health-checks (should we restrict IP?)
     location = /monitor-status.php {
@@ -539,7 +539,7 @@ server {
         # allow 10.0.0.0/8;
         # deny all;
     }
-    {% endif %}
+{% endif %}
 
     # return 404 for all other php files not matching the front controller
     # this prevents access to other php files you don't want to be accessible.
@@ -547,7 +547,7 @@ server {
         return 404;
     }
 
-    {% if cookiecutter.with_php_status %}
+{% if cookiecutter.with_php_status %}
     location {{ cookiecutter.php_status}} {
             fastcgi_split_path_info ^(.+\.php)(/.+)$;
             fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
@@ -576,9 +576,9 @@ server {
             allow {{ cookiecutter.monitoring_network }};
             deny all;
     }
-    {% endif %}
+{% endif %}
 
-    {% if cookiecutter.with_nginx_status %}
+{% if cookiecutter.with_nginx_status %}
     location {{ cookiecutter.nginx_status}} {
         stub_status on;
         access_log   off;
@@ -586,7 +586,7 @@ server {
         allow {{ cookiecutter.monitoring_network }};
         deny all;
     }
-    {% endif %}
+{% endif %}
 
 
     location /private-files-x-accel-redirect/ {
@@ -602,9 +602,9 @@ server {
         alias /tmp/;
     }
 
-    {%if cookiecutter.remove_varnish%}
+{%if cookiecutter.remove_varnish%}
     {{'{{'}} end }}
     {{'{{'}} template "vhost" $v }}
-    {% endif %}
+{% endif %}
 
 }

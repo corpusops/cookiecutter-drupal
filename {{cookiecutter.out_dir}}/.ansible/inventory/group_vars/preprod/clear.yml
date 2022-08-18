@@ -1,0 +1,4 @@
+---
+cops_{{cookiecutter.app_type}}_deploy_env: preprod
+cops_{{cookiecutter.app_type}}_hostname:  "{{cookiecutter.preprod_domain}}"
+cops_{{cookiecutter.app_type}}_alternate_hostnames: {{cookiecutter.preprod_alternate_domains.split(',')}}

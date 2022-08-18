@@ -11,9 +11,9 @@ services:
     #  - {{cookiecutter.app_type}}
     #  - nginx
     #  - db
-  {%if cookiecutter.with_redis%}
+{%if cookiecutter.with_redis%}
     #  - redis
-  {%endif%}
+{%endif%}
     command: npx cypress run
     volumes:
       - ./e2e/cypress:/app/cypress

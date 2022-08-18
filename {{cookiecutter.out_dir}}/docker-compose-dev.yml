@@ -13,53 +13,46 @@ x-images:
       NO_CACHE_CLEAR: "1"
       NO_COMPOSER: "1"
       NO_INSTALL: "1"
+      # Resolve Docker mac problems
+      # NO_FIXPERMS: "1"
+      # if you need to debug the docker init uncomment the next 2 lines
+      # SDEBUG: "1"
+      # NO_STARTUP_LOGS: ""
     volumes: &{{cookiecutter.app_type}}_volumes
-      #- ./local/drupal-deploy-common/sys/sudoer:/etc/sudoers.d/${APP_TYPE:-drupal}
-      - ./sys/sbin:/code/sys/sbin/
       {%-if cookiecutter.use_submodule_for_deploy_code %}
-      - ./local/drupal-deploy-common/sys/init.sh:/code/sys/init.sh
       - ./local/drupal-deploy-common/sys/init.sh:/code/init/init.sh
-      - ./local/drupal-deploy-common/sys/sbin/composerinstall.sh:/code/init/sbin/composerinstall.sh
-      - ./local/drupal-deploy-common/sys/sbin/composer.sh:/code/init/sbin/composer.sh
-      - ./local/drupal-deploy-common/sys/etc/supervisor.d:/code/sys/etc/supervisor.d
-      - ./local/drupal-deploy-common/sys/etc/php-fpm.d:/code/sys/etc/php-fpm.d
       - ./local/drupal-deploy-common:/code/local/drupal-deploy-common
       {%- else%}
-      - ./sys/init.sh:/code/sys/init.sh
       - ./sys/init.sh:/code/init/init.sh
-      - .sys/sbin/composerinstall.sh:/code/init/sbin/composerinstall.sh
-      - .sys/sbin/composer.sh:/code/init/sbin/composer.sh
-      - ./sys/etc/supervisor.d:/code/sys/etc/supervisor.d
-      - ./sys/etc/php-fpm.d:/code/sys/etc/php-fpm.d
       - ./:/code/local/drupal-deploy-common
       {%- endif%}
-      - ./sys/etc/supervisor.d:/code/etc/supervisor.d
+      - ./sys:/code/sys
       - ./local:/code/local
       - ./app:{{cookiecutter.app_path}}
       # remount public/private (named volumes on prod, local remount on dev)
       # on /code/app/public/files and /code/app/private
       - ./app/var/public:{{cookiecutter.public_files_path}}/
       - ./app/var/private:{{cookiecutter.private_path}}/
-      - ./app/var/cache:{{cookiecutter.cache_path}}
+      #- ./app/var/cache:{{cookiecutter.cache_path}}
 services:
   db:
     ports:
-    - "${DRUPAL_DB_LISTEN:-0.0.0.0}:${DRUPAL_DB_PORT:-{{ cookiecutter.local_direct_db_port }}}:5432"
-  {%-if not cookiecutter.remove_varnish%}
+    - "${DRUPAL_DB_LISTEN:-127.0.0.1}:${DRUPAL_DB_PORT:-{{ cookiecutter.local_direct_db_port }}}:5432"
+{%-if not cookiecutter.remove_varnish%}
   varnish:
     environment:
       DRUPAL_ENV_NAME: "${DRUPAL_ENV_NAME-dev}"
     volumes:
       - ./local/drupal-deploy-common/sys/varnish.sh:/varnish.sh
-  {%-endif%}
+{%-endif%}
   nginx:
     environment:
       <<: [ *drupal_env ]
       NO_SSL: "{%if not cookiecutter.ssl_in_dev%}1{%else%}0{%endif%}"
       NO_FORCE_SSL: "{%if not cookiecutter.ssl_in_dev%}1{%endif%}"
     ports:
-    - "${DRUPAL_HTTP_LISTEN:-0.0.0.0}:${DRUPAL_HTTP_PORT:-{{cookiecutter.local_http_port}}}:80"
-    {%if cookiecutter.ssl_in_dev %}- "${DRUPAL_HTTP_LISTEN:-0.0.0.0}:${DRUPAL_HTTPS_PORT:-443}:443"{% endif %}
+      - "${DRUPAL_HTTP_LISTEN:-0.0.0.0}:${DRUPAL_HTTP_PORT:-{{cookiecutter.local_http_port}}}:80"
+{%if cookiecutter.ssl_in_dev %}      - "${DRUPAL_HTTP_LISTEN:-0.0.0.0}:${DRUPAL_HTTPS_PORT:-443}:443"{% endif %}
     volumes:
       # remount public/private (named volumes on prod, local remount on dev)
       # on /code/app/var/public (files) and /code/app/var/private
@@ -70,12 +63,12 @@ services:
   {%- if not cookiecutter.remove_cron %}
   cron:
     <<: [ *bypass,  *{{cookiecutter.app_type}} ]
-  {% endif %}
+{% endif %}
   {{cookiecutter.app_type}}:
     <<: [ *{{cookiecutter.app_type}} ]
     environment:
       <<: [ *{{cookiecutter.app_type}}_env ]
       IMAGE_MODE: phpfpm
-      PHP_XDEBUG_REMOTE: ${PHP_XDEBUG_REMOTE-1}
-      PHP_XDEBUG_IP: ${PHP_XDEBUG_IP-host.docker.internal}
-      PHP_XDEBUG_PORT: ${PHP_XDEBUG_PORT-9000}
+      PHP_XDEBUG_REMOTE: "${PHP_XDEBUG_REMOTE-1}"
+      PHP_XDEBUG_IP: "${PHP_XDEBUG_IP-host.docker.internal}"
+      PHP_XDEBUG_PORT: "${PHP_XDEBUG_PORT-9000}"
