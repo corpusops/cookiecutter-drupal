@@ -3,29 +3,19 @@ bzip2
 ca-certificates
 curl
 gettext
-gettext
 git
-less
-lsof
-nano
+libxslt1.1
+logrotate
 openssl
 patch
-{% if 'post' in cookiecutter.db_mode %}postgresql-client
-{% elif 'mysql' in cookiecutter.db_mode %}mysql{{ cookiecutter.db_version }}{% endif %}
 rsync
 sudo
 tzdata
 unzip
-unzip
-vim
 wget
-libxslt1.1
-logrotate
-
-poppler-utils
-python3-pil
-python3-pip
-
+{% if 'post' in cookiecutter.db_mode %}postgresql-client
+postgresql-server-dev-all
+{% elif 'mysql' in cookiecutter.db_mode %}mysql{{ cookiecutter.db_version }}{% endif %}
 
 php{{cookiecutter.php_ver}}
 php{{cookiecutter.php_ver}}-apcu
@@ -57,23 +47,20 @@ php{{cookiecutter.php_ver}}-zip
 php-pear
 php-dompdf
 
-
 # dev deps are there but as in drupal in dev mode we need those tools to run composer, we cant strip them from the final image
-apt-utils
-autoconf
-automake
-build-essential
-g++
-gpg
-groff
-libgcc-9-dev
-libproj-dev
-libstdc++-9-dev
-libtool
-llvm-10-dev
-m4
-make
-postgresql-server-dev-all
-software-properties-common
-
+# autoconf
+# automake
+# build-essential
+# g++
+# gpg
+# groff
+# libgcc-9-dev
+# libproj-dev
+# libstdc++-9-dev
+# libtool
+# llvm-10-dev
+# m4
+# make
 # dev dependencies (after this line, all packages will be removed after build)
+# software-properties-common
+# apt-utils

@@ -7,8 +7,9 @@ image: {name: "${COMPOSE_IMAGE}", entrypoint: [""]}
 {%- set prodhostdeploycomment = (not cookiecutter.prod_host) and '#  ' or '' %}
 {%- set envs = ['dev', 'qa', 'staging', 'prod', 'preprod'] %}
 {%- set devhostdeploycomment = (not cookiecutter.dev_host) and '#  ' or '' %}
-{%- set jscomment = (not cookiecutter.with_bundled_front) and '#  ' or '' %}
-{%- set resetcomment = (not cookiecutter.with_reset_stagingprod_jobs) and '#  ' or '' %}
+{%- set frontcomment = (not cookiecutter.with_bundled_front) and '#  ' or '' %}
+{%- set staticscomment = (not (cookiecutter.with_bundled_front or cookiecutter.with_bundled_docs)) and '#  ' or '' %}
+{%- set docscomment = (not cookiecutter.with_bundled_docs) and '#  ' or '' %}
 {%- set envbranchs = [] %}
 {%- for i in gitlabci_envs %}{% if cookiecutter.get(i+'_host')%}
 {%- set _ = envbranchs.append(cookiecutter[i+'_branch']) %}
@@ -39,6 +40,7 @@ variables:
   REGISTRY_IMAGE: "{{cookiecutter.registry_image}}"
   NODE_IMAGE: "{{cookiecutter.node_image}}"
   #
+  NODE_SH: "docker run -u $(id -u) -v $(pwd):/h -w /h -e PATH=/h/node_modules/.bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin --rm ${NODE_IMAGE}:$(cat .nvmrc)-slim bash"
   DOCKER_BUILDKIT: "1"
   COMPOSE_DOCKER_CLI_BUILD: "1"
   BUILDKIT_PROGRESS: plain
@@ -59,7 +61,7 @@ variables:
   # services launched during tests
   DOCKER_SERVICES: "db{%if cookiecutter.with_redis %} redis{%endif%} mailcatcher"
   # Those services underlying images will be built
-  DOCKER_BUILT_SERVICES: "docs {{cookiecutter.app_type}}{%if not cookiecutter.remove_cron%} cron{% endif %}{%if not cookiecutter.remove_varnish%} varnish{% endif %}"
+  DOCKER_BUILT_SERVICES: "{{cookiecutter.app_type}}{%if not cookiecutter.remove_cron%} cron{% endif %}{%if not cookiecutter.remove_varnish%} varnish{% endif %}"
   # Main image
   # cache registry setup
   REGISTRY_LOG_LEVEL: info
@@ -75,8 +77,9 @@ variables:
   BUILDCACHE_CURRENT_DOCKER_IMAGE: "${BUILDCACHE_REGISTRY}/${DOCKER_IMAGE}:build-${CI_PIPELINE_IID}"
   BUILDCACHE_REF_DOCKER_IMAGE: "${BUILDCACHE_REGISTRY}/${DOCKER_IMAGE}:${CI_COMMIT_REF_NAME}"
   BUILDCACHE_LATEST_DOCKER_IMAGE:  "${BUILDCACHE_REGISTRY}/${DOCKER_IMAGE}:latest"
-  BUILDCACHE_DOCKER_IMAGE_DOCS: "${BUILDCACHE_REGISTRY}/${DOCKER_IMAGE}:${CI_COMMIT_REF_NAME}-docs"
-  BUILDCACHE_CURRENT_DOCKER_IMAGE_DOCS:  "${BUILDCACHE_REGISTRY}/${DOCKER_IMAGE}:build-{CI_PIPELINE_IID}-docs"
+  BUILDCACHE_DOCKER_IMAGE_DOCS: "${BUILDCACHE_REGISTRY}/${DOCKER_IMAGE}:docsbuilder"
+  BUILDCACHE_REF_DOCKER_IMAGE_DOCS: "${BUILDCACHE_REGISTRY}/${DOCKER_IMAGE}:${CI_COMMIT_REF_NAME}-docsbuilder"
+  BUILDCACHE_CURRENT_DOCKER_IMAGE_DOCS:  "${BUILDCACHE_REGISTRY}/${DOCKER_IMAGE}:build-${CI_PIPELINE_IID}-docsbuilder"
   # Released images flavors: build/forcedrelease/tags/master
   CURRENT_DOCKER_IMAGE: "${DOCKER_REGISTRY}/${DOCKER_IMAGE}:build-${CI_PIPELINE_IID}"
   FORCED_DOCKER_IMAGE:     "${DOCKER_REGISTRY}/${DOCKER_IMAGE}:forced${CI_COMMIT_REF_NAME}"
@@ -97,7 +100,8 @@ variables:
   LATEST_DOCKER_IMAGE_VARNISH:  "${DOCKER_REGISTRY}/${DOCKER_IMAGE_VARNISH}:latest"
 {% endif %}
   # Allow to have many compose stacks aside.
-  D_COMPOSE: "docker-compose --verbose"
+  D_COMPOSE: "docker-compose"
+  # D_COMPOSE: "docker-compose --verbose"
   COMPOSE_PROD_CONFIGS: docker-compose.yml docker-compose-prod.yml docker-compose-build.yml
   COMPOSE_DEV_CONFIGS:  docker-compose.yml docker-compose-dev.yml  docker-compose-build.yml docker-compose-build-dev.yml
   DEPLOY_PLAYBOOK: "{{cookiecutter.deploy_playbook}}"
@@ -106,12 +110,14 @@ variables:
   BUILDCACHE_ROOTDIRECTORY: /cache/$CI_PROJECT_PATH_SLUG/dockercache
   STATICS_DIRECTORY:        /cache/$CI_PROJECT_PATH_SLUG/statics
   STATICS_TARBALL:          /cache/$CI_PROJECT_PATH_SLUG/statics/statics-${CI_PIPELINE_IID}.tar.gz
+  DOCS_TARBALL:             /cache/$CI_PROJECT_PATH_SLUG/statics/docs-${CI_PIPELINE_IID}.tar.gz
   WORKSPACE:                /cache/$CI_PROJECT_PATH_SLUG/w/${CI_PIPELINE_IID}
   # needed to have docker volumes in a shared folder between job/stages
   COMMONHOSTSFILE:          /cache/$CI_PROJECT_PATH_SLUG/w/${CI_PIPELINE_IID}/${CI_JOB_STAGE}.hosts
   SERVICES_TOWER_FLAG:      /cache/$CI_PROJECT_PATH_SLUG/w/${CI_PIPELINE_IID}/status_flags_servicestower
   REGISTRIES_FLAG:          /cache/$CI_PROJECT_PATH_SLUG/w/${CI_PIPELINE_IID}/status_flags_registries
   DOCKERD_FLAG:             /cache/$CI_PROJECT_PATH_SLUG/w/${CI_PIPELINE_IID}/status_flags_dockerd
+  DOCSBUILD_STATUS_FLAG:    /cache/$CI_PROJECT_PATH_SLUG/w/${CI_PIPELINE_IID}/status_flags_docsbuild
   JSBUILD_STATUS_FLAG:      /cache/$CI_PROJECT_PATH_SLUG/w/${CI_PIPELINE_IID}/status_flags_jsbuild
   BUILD_STATUS_FLAG:        /cache/$CI_PROJECT_PATH_SLUG/w/${CI_PIPELINE_IID}/status_flags_build
   TESTS_STATUS_FLAG:        /cache/$CI_PROJECT_PATH_SLUG/w/${CI_PIPELINE_IID}/status_flags_tests
@@ -120,13 +126,15 @@ variables:
   PIPELINE_FLAG:            /cache/$CI_PROJECT_PATH_SLUG/w/${CI_PIPELINE_IID}/status_flags_pipeline
   BEFORE_STATUS_TIMEOUT: "900"
   AFTER_STATUS_TIMEOUT: "1800"
-  PRELOAD_BUILDCACHE_IMAGES: ${BUILDCACHE_REF_DOCKER_IMAGE}-nosquash $BUILDCACHE_CURRENT_DOCKER_IMAGE $BUILDCACHE_REF_DOCKER_IMAGE $BUILDCACHE_LATEST_DOCKER_IMAGE
+  PRELOAD_BUILDCACHE_IMAGES: $BUILDCACHE_DOCKER_IMAGE_DOCS $BUILDCACHE_CURRENT_DOCKER_IMAGE_DOCS ${BUILDCACHE_REF_DOCKER_IMAGE}-nosquash $BUILDCACHE_CURRENT_DOCKER_IMAGE $BUILDCACHE_REF_DOCKER_IMAGE $BUILDCACHE_LATEST_DOCKER_IMAGE{% if not cookiecutter.remove_varnish %} $LATEST_DOCKER_IMAGE_VARNISH $REF_DOCKER_IMAGE_VARNISH{%endif%}
   PRELOAD_RELEASED_IMAGES: $REF_DOCKER_IMAGE $LATEST_DOCKER_IMAGE
+  CACHEABLE_BUILD_BRANCH: ".*"
   TAGGUABLE_IMAGE_BRANCH: "^(master|dev|qa|staging|preprod|prod)$"
   SKIP_TEST_BRANCHES: "(qa|staging|preprod|prod)"
-  CACHE_BUILD_FOR_BRANCH_REGEX: "^(master|dev|qa|staging|preprod|prod)$"
   MASTER_BRANCH: master
   CACHE_DAYS: "7"
+  STATICS_FOLDERS: "{{cookiecutter.statics_folders}}"
+  DOCS_FOLDERS: "{{cookiecutter.docs_folders}}"
 
   # {{cookiecutter.lname}} settings
 {%-if cookiecutter.use_submodule_for_deploy_code%}
@@ -144,6 +152,9 @@ variables:
   # The only penalty will be that a local cache must still reside on the runner to have a chance to benefit from it
   # Already pushed images to the central registry won't be used as cache sources.
   DC_LOCAL_CACHE_ONLY: ""
+  # set to 1 to force reinstall
+  DRUPAL_FORCE_INSTALL: ""
+  NPM_CONFIG: "npm config set puppeteer_skip_chromium_download true"
 
 
 # NEVER ever use gitlab-ci cache, its broken by design in most case of CI related tasks
@@ -176,15 +187,8 @@ before_script: &top_before_script
     if !( update-ca-certificates --help >/dev/null 2>&1 );then
       apk add --no-cache ca-certificates
     fi
-    ( cp -v ${REGISTRY_ROOTDIRECTORY}/ssl/*.crt /usr/local/share/ca-certificates || true )
+    ( cp -v ${REGISTRY_ROOTDIRECTORY}/ssl/*ca*crt /usr/local/share/ca-certificates || true )
     update-ca-certificates
-   }
-   to_squash() {
-    # as squashing is a slow and consuming operation, only do it for releasable pipelines
-    if ! ( echo ${CI_COMMIT_REF_NAME} | egrep -q "$TAGGUABLE_IMAGE_BRANCH" );then NO_SQUASH=1;fi;
-    # but let users have the FORCE_NO_SQUASH env var to force it (set it to everything but 1)
-    export NO_SQUASH=${FORCE_NO_SQUASH-${NO_SQUASH-}};
-    test "x${NO_SQUASH}" != "x1"
    }
    log() { echo "$@">&2; }
    die() { log "$@";exit 1; }
@@ -200,6 +204,18 @@ before_script: &top_before_script
     (cat /dev/zero|read -t ${s}||exit 0);done; }
    vwait_ready() { vv wait_ready "$@"; }
    #
+   writeokstatus() { set -e;f=$(eval echo ${STATUS_FLAG});if [ "x${f}" != "x" ];then echo 0 > "${f}";fi; }
+   writenokstatus() { set -e;f=$(eval echo ${STATUS_FLAG});if [ "x${f}" != "x" ] && [ ! -e "${f}" ];then echo 3 > "${f}";fi; }
+   waitafterjobs() {
+    set -e
+    for f in ${AFTER_STATUS_FLAGS-};do
+      f=$(eval echo ${f});t=${AFTER_STATUS_TIMEOUT} vwait_ready wait_flags "${f}"
+      if ( egrep -v 0 "${f}" );then exit $(cat "${f}");fi
+    done
+    for f in ${AFTER_ALLOW_FAILURE_STATUS_FLAGS-};do
+      f=$(eval echo ${f});t=${AFTER_STATUS_TIMEOUT} vwait_ready wait_flags "${f}"
+    done
+   }
    wait_hostsfile() { set -e;grep -q dockerregistries "${COMMONHOSTSFILE}" >/dev/null 2>&1; }
    add_hosts() { cat "${COMMONHOSTSFILE}">>/etc/hosts; }
    refresh_gitlab_services() { t=240 vv wait_ready wait_hostsfile && add_hosts; }
@@ -210,6 +226,7 @@ before_script: &top_before_script
    wait_flags() { for i in $@;do test -e $(eval echo ${i});done; }
    EOF
    fi;. "${WORKSPACE}/funcs"
+- &install_bash if !( bash --version >/dev/null 2>&1 ) && [ "x${INSTALL_BASH-1}" = "x1" ];then if (apk --version >/dev/null 2>&1 );then apk update && apk add -q bash;elif ( apt-get --version >/dev/null 2>&1 );then apt-get update -qq && apt-get install -yqq bash;fi;fi
 - &cleanupstatusflag if [ -e "${STATUS_FLAG}" ];then rm -f "${STATUS_FLAG}";fi
 - &netlinkservices refresh_gitlab_services
 - &waitbeforejobs |-
@@ -235,6 +252,7 @@ before_script: &top_before_script
     set -e;if ! (git --version >/dev/null 2>&1);then apk update;apk add git;fi &&
     cd ${PROJECT_COMMON_DEPLOY_DIR};( git fetch --unshallow  >/dev/null 2>&1 || true );git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*";git fetch origin;git reset --hard $DJANGO_DEPLOY_VERSION --;cd - >/dev/null 2>&1;
     fi
+- &addregcacert addregcacert
 # first registry login does not have to success, we only want it to be available on release
 - &gendockerlogin |-
   set -e;cat > /docker_login <<EOF
@@ -260,12 +278,13 @@ before_script: &top_before_script
     -e "s/^([^=]+_IMAGE_VERSION=.*)latest/\\1build-${CI_PIPELINE_IID}/g" \
     -e "s|$DOCKER_REGISTRY|$BUILDCACHE_REGISTRY|g"                       \
     -e "s/^(CI_COMMIT_SHA=).*/\\1${CI_COMMIT_SHA}/g" > $env;done;
-{{jscomment}}- &warm_statics_tarball
-{{jscomment}}  sh -ec "if [ -n ${STATICS_LOAD-} ] && [ -e \"\$STATICS_TARBALL\" ];then
-{{jscomment}}     echo \"Warming statics cache from \$STATICS_TARBALL\" >&2;
-{{jscomment}}     if [ ! -e sys/statics ];then mkdir -p sys/statics;fi;
-{{jscomment}}     cp -fv \"\$STATICS_TARBALL\" sys/statics/;
-{{jscomment}}  fi"
+- &warm_statics_tarball
+  sh -ec "for t in \"\${STATICS_TARBALL}\" \"\${DOCS_TARBALL}\";do
+  if [ -n ${STATICS_LOAD-} ] && [ -e \"\$t\" ];then
+     echo \"Warming statics cache from \$t\" >&2;
+     if [ ! -e sys/statics ];then mkdir -p sys/statics;fi;
+     cp -fv \"\$t\" sys/statics/;
+  fi;done"
 
 # to speed up pipelines, we assemble the 2 registry services into one single one
 # in the fist service, we spawn two registries, one for dockerhub cache, and one for builds
@@ -355,21 +374,20 @@ services: &services
   only: [{{mastertagsenvstrs}}]
   except: []
 
-{{jscomment}}cleanup_all_expired_build_artefacts_from_cache:
-{{jscomment}}  <<: [ *manual_job ]
-{{jscomment}}  before_script: []
-{{jscomment}}  script:
-{{jscomment}}  - &cleanup_all_expired_build_artefacts_from_cache \
-{{jscomment}}    todel=$(mktemp)
-{{jscomment}}    && find ${STATICS_DIRECTORY} -type f -mtime +$CACHE_DAYS>${todel} && while read f;do rm -fv "$f";done<${todel}
-{{jscomment}}
-{{jscomment}}cleanup_all_build_artefacts_from_cache:
-{{jscomment}}  <<: [ *manual_job ]
-{{jscomment}}  before_script: []
-{{jscomment}}  script:
-{{jscomment}}  - &cleanup_all_build_artefacts_from_cache \
-{{jscomment}}    todel=$(mktemp)
-{{jscomment}}    && find ${STATICS_DIRECTORY} -type f>${todel} && while read f;do rm -fv "$f";done<${todel}
+{{staticscomment}}cleanup_all_expired_build_artefacts_from_cache:
+{{staticscomment}}  <<: [ *manual_job ]
+{{staticscomment}}  before_script: []
+{{staticscomment}}  script:
+{{staticscomment}}  - &cleanup_all_expired_build_artefacts_from_cache \
+{{staticscomment}}    todel=$(mktemp)
+{{staticscomment}}    && find ${STATICS_DIRECTORY} -type f -mtime +$CACHE_DAYS>${todel} && while read f;do rm -fv "$f";done<${todel}
+{{staticscomment}}cleanup_all_build_artefacts_from_cache:
+{{staticscomment}}  <<: [ *manual_job ]
+{{staticscomment}}  before_script: []
+{{staticscomment}}  script:
+{{staticscomment}}  - &cleanup_all_build_artefacts_from_cache \
+{{staticscomment}}    todel=$(mktemp)
+{{staticscomment}}    && find ${STATICS_DIRECTORY} -type f>${todel} && while read f;do rm -fv "$f";done<${todel}
 
 cleanup_all_project_cache:
   <<: [ *manual_job ]
@@ -396,21 +414,12 @@ cleanup_project_docker_registry: &cleanup_project_docker_registry
   services: []
   script:
   - *definefuncs
-  - &writeokstatus |-
-    set -e;f=$(eval echo ${STATUS_FLAG});if [ "x${f}" != "x" ];then echo 0 > "${f}";fi
+  - &writeokstatus writeokstatus
   # we need to wait for statuses of other jobs of this stage as the build job holds the shared services
-  - &waitafterjobs |-
-    set -e
-    for f in ${AFTER_STATUS_FLAGS-};do
-      f=$(eval echo ${f});t=${AFTER_STATUS_TIMEOUT} vwait_ready wait_flags "${f}"
-      if ( egrep -v 0 "${f}" );then exit $(cat "${f}");fi
-    done
-    for f in ${AFTER_ALLOW_FAILURE_STATUS_FLAGS-};do
-      f=$(eval echo ${f});t=${AFTER_STATUS_TIMEOUT} vwait_ready wait_flags "${f}"
-    done
+  - &waitafterjobs waitafterjobs
   after_script:
-  - &writenokstatus |-
-    set -e;f=$(eval echo ${STATUS_FLAG});if [ "x${f}" != "x" ] && [ ! -e "${f}" ];then echo 3 > "${f}";fi
+  - *definefuncs
+  - &writenokstatus writenokstatus
 
 services_tower: &services_tower
   <<: [ *build ]
@@ -433,47 +442,106 @@ services_tower: &services_tower
     && t=${REGISTRIES_TIMEOUT:-180} vwait_ready wait_registries
     && t=${DOCKER_TIMEOUT:-240} vwait_ready wait_docker
     && t=${DOCKER_PULLTEST_TIMEOUT:-160} vwait_ready docker pull ${DOCKER_TEST_IMAGE}
-  - *writeokstatus
+  - &services_tower_flag STATUS_FLAG=${SERVICES_TOWER_FLAG} writeokstatus
   - *waitafterjobs
   after_script:
+  - *definefuncs
   - *writenokstatus
 
-{{jscomment}}# BUILTIN Js APP support
-{{jscomment}}.front_job: &front_job
-{{jscomment}}  cache: {key: jsdeps, paths: [node_modules]}
-{{jscomment}}  image: ${NODE_IMAGE}
-{{jscomment}}  variables: &front_job_vars
-{{jscomment}}    PATH: $CI_PROJECT_DIR/node_modules/.bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-{{jscomment}}  before_script: [ *createdirs, *linkapt, *settz, *pullsubmodules, *gendotenv ]
-{{jscomment}}  script:
-{{jscomment}}  - *definefuncs
-{{jscomment}}  - *cleanupstatusflag
-{{jscomment}}  - &front_setup
-{{jscomment}}      set -e;
-{{jscomment}}      vv npm config set puppeteer_skip_chromium_download true;
-{{jscomment}}      vv npm ci
-{{jscomment}}do_front_build:
-{{jscomment}}  <<: [ *front_job, *build ]
-{{jscomment}}  start_in: 5 seconds
-{{jscomment}}  variables:
-{{jscomment}}    <<: [ *front_job_vars ]
-{{jscomment}}    STATUS_FLAG: ${JSBUILD_STATUS_FLAG}
-{{jscomment}}  script:
-{{jscomment}}  - *definefuncs
-{{jscomment}}  - *front_setup
-{{jscomment}}  - npm run build
-{{jscomment}}  - tar czvf "${STATICS_TARBALL}" src/*/static/dist
-{{jscomment}}  - *writeokstatus
+.standalonebuilder: &standalonebuilder
+  services: [ *services ]
+  variables: &standalonebuilder_vars
+    UPGRADE_DOCKER: "1"
+  before_script: &standalone_builder_before_script
+  - *createdirs
+  - *cleanupstatusflag
+  - *definefuncs
+  - *install_bash
+  - *writeservivestohosts
+  - *waitforservices
+  - *services_tower_flag
+  - *settz
+  - *pullsubmodules
+  - *gendockerlogin
+  - *gendotenv
+  - *addregcacert
+  - *nonfaildockerlogin
 
+.builder: &builder
+  <<: [ *standalonebuilder, *build ]
+  services: []
+  start_in: 40 seconds
+  before_script: *top_before_script
+  variables: &builder_vars
+    <<: [ *standalonebuilder_vars ]
+    BEFORE_STATUS_FLAGS: ${SERVICES_TOWER_FLAG}
+
+{{frontcomment}}# BUILTIN Js APP support
+{{frontcomment}}do_front_build: &do_front_build
+{{frontcomment}}  <<: [ *builder ]
+{{frontcomment}}  cache: {key: jsdeps, paths: [node_modules]}
+{{frontcomment}}  variables: { <<: [ *builder_vars ], STATUS_FLAG: "$JSBUILD_STATUS_FLAG"}
+{{frontcomment}}  script:
+{{frontcomment}}  - &front_setup |-
+{{frontcomment}}      set -ex;
+{{frontcomment}}      cat | bash -xe << EOF
+{{frontcomment}}        # escape gitlabci wrong quoting hell
+{{frontcomment}}      ${NODE_SH} -exc "$NPM_CONFIG;{% if cookiecutter.with_yarn%}yarn install{%else%}npm ci{%endif%}"
+{{frontcomment}}      EOF
+{{frontcomment}}  - &front_build |-
+{{frontcomment}}        set -ex;
+{{frontcomment}}        # escape gitlabci wrong quoting hell
+{{frontcomment}}        cat | bash -xe << EOF
+{{frontcomment}}        ${NODE_SH} -exc "$NPM_CONFIG;{% if cookiecutter.with_yarn%}yarn build{% else%}npm run build{%endif%}"
+{{frontcomment}}        EOF
+{{frontcomment}}  - &front_save tar czf "${STATICS_TARBALL}" ${STATICS_FOLDERS}
+{{frontcomment}}  - *writeokstatus
+{{frontcomment}}manual_do_front_build:
+{{frontcomment}}  <<: [ *manual_job, *standalonebuilder, *do_front_build ]
+{{frontcomment}}  start_in: null
+
+{{docscomment}}# BUILTIN DOC APP support
+{{docscomment}}do_docs_build: &do_docs_build
+{{docscomment}}  <<: [ *builder ]
+{{docscomment}}  variables:
+{{docscomment}}    <<: [ *builder_vars ]
+{{docscomment}}    STATUS_FLAG: "$DOCSBUILD_STATUS_FLAG"
+{{docscomment}}    NO_BUILD: "1"
+{{docscomment}}    NOBUILD: "1"
+{{docscomment}}  script:
+{{docscomment}}  - &docs_setup |-
+{{docscomment}}      set -e
+{{docscomment}}      cat >ci.yml<<EOF
+{{docscomment}}      $(grep ^version: ${MAIN_COMPOSE}|head -n1)
+{{docscomment}}      services:
+{{docscomment}}        docs:
+{{docscomment}}          build:
+{{docscomment}}            cache_from:
+{{docscomment}}            - ${BUILDCACHE_CURRENT_DOCKER_IMAGE_DOCS}
+{{docscomment}}            - ${BUILDCACHE_REF_DOCKER_IMAGE_DOCS}
+{{docscomment}}            - ${BUILDCACHE_DOCKER_IMAGE_DOCS}
+{{docscomment}}      EOF
+{{docscomment}}      cat ci.yml
+{{docscomment}}      vv ./control.sh dcompose -f docker-compose-build.yml -f ci.yml build --build-arg BUILDKIT_INLINE_CACHE=1 docs
+{{docscomment}}      vv docker inspect ${BUILDCACHE_CURRENT_DOCKER_IMAGE_DOCS} >/dev/null
+{{docscomment}}      vv docker tag ${BUILDCACHE_CURRENT_DOCKER_IMAGE_DOCS} ${BUILDCACHE_DOCKER_IMAGE_DOCS}
+{{docscomment}}      vv docker tag ${BUILDCACHE_CURRENT_DOCKER_IMAGE_DOCS} ${BUILDCACHE_REF_DOCKER_IMAGE_DOCS}
+{{docscomment}}      ( echo $CI_COMMIT_REF_NAME | egrep -q "$TAGGUABLE_IMAGE_BRANCH" ) && vv docker push ${BUILDCACHE_DOCKER_IMAGE_DOCS}
+{{docscomment}}      ( echo $CI_COMMIT_REF_NAME | egrep -q "^$MASTER_BRANCH$") && vv docker push ${BUILDCACHE_REF_DOCKER_IMAGE_DOCS}
+{{docscomment}}  - &docs_build ./docs/build.sh
+{{docscomment}}  - &docs_save tar czf "${DOCS_TARBALL}" ${DOCS_FOLDERS}
+{{docscomment}}  - *writeokstatus
+{{docscomment}}manual_do_docs_build:
+{{docscomment}}  <<: [ *manual_job, *standalonebuilder, *do_docs_build ]
+{{docscomment}}  start_in: null
 
 build_images: &build_images
-  <<: [ *build ]
-  start_in: 40 seconds
+  <<: [ *builder ]
   variables: &build_images_vars
-    UPGRADE_DOCKER: "1"
-    STATICS_LOAD: "1"
+    <<: [ *builder_vars ]
+    BEFORE_STATUS_FLAGS: ${SERVICES_TOWER_FLAG}{%if cookiecutter.with_bundled_front%} ${JSBUILD_STATUS_FLAG}{%endif%}{%if cookiecutter.with_bundled_docs%} ${DOCSBUILD_STATUS_FLAG}{%endif%}
     STATUS_FLAG: ${BUILD_STATUS_FLAG}
-    BEFORE_STATUS_FLAGS: ${SERVICES_TOWER_FLAG}{%if cookiecutter.with_bundled_front%} ${JSBUILD_STATUS_FLAG}{%endif%}
+    STATICS_LOAD: "1"
   script:
   - *definefuncs
   - &build_step1 |-
@@ -481,6 +549,8 @@ build_images: &build_images
     # copy in compose image the wanted docker binary version
     docker-compose --version
     if [ "x${CI_BYPASS_DOCKERBUILD-}" != "x" ];then sed -i "5,$ d" local/*deploy-common/Dockerfile*;fi
+    # squash images directly with docker as docker-compose does not support it nativly
+    # but with taking off from compose configuration the build args
     dc_build() {
       cfgs="${@}"
       MAIN_COMPOSE=$(echo $cfgs|awk '{print $1}')
@@ -491,39 +561,25 @@ build_images: &build_images
     EOFCACHE
       cfgs="${cfgs} ${dcoverrides}"
       dc="$D_COMPOSE" && for i in ${cfgs};do dc="$dc -f ${i}";done
-      cimg=$($dc config|docker run --rm -i --entrypoint yq mikefarah/yq:4 e ".services.${service}.image" -)
-      # As per https://github.com/moby/moby/issues/39003, when a tag is built with BUILDKIT_INLINE_CACHE
-      # and https://github.com/docker/compose/issues/7336
-      # be sure 1. to not touch it (retag, or anything) before pushing it to registry or you won't be
-      # able to cacheHit in next builds, so we isolate the tag to not touch it after !
-      # 2. to have sources order correct, and if there are still too much of no hits, uncomment bellow the
+      dcexport=$(mktemp).composegitlab.exported.yml
+      $dc config > $dcexport
+      cimg=$(cat $dcexport|docker run --rm -i --entrypoint yq mikefarah/yq:4 e ".services.${service}.image" -)
+      # to have sources order correct, and if there are still too much of no hits, uncomment bellow the
       # local source only selector by Activating DC_LOCAL_CACHE_ONLY=1
-      simg=${cimg}-nosquash
-      simg=${simg//dev-nosquash/nosquash-dev}
-    cat>>${dcoverrides}<<EOFCACHE
+      if [ "x${PRELOAD_BUILDCACHE_IMAGES}${PRELOAD_RELEASED_IMAGES}" != "x" ];then
+        cat>>${dcoverrides}<<EOFCACHE
     services:
       ${service}:
-        image: ${simg}
         build:
+          cache_from:
     EOFCACHE
-      #
-      if [ "x${PRELOAD_BUILDCACHE_IMAGES}${PRELOAD_RELEASED_IMAGES}" != "x" ];then
-        echo "      cache_from:" >> ${dcoverrides}
         for img in $(echo ${PRELOAD_BUILDCACHE_IMAGES} ${PRELOAD_RELEASED_IMAGES}|xargs -n 1|awk '!seen[$0]++');do
           img=$(eval echo ${img})
           dcadd=
           if [ "x${DC_LOCAL_CACHE_ONLY-}" = "x" ];then
             dcadd=1
           elif ( echo ${img}|grep -q "$BUILDCACHE_REGISTRY" );then
-            if !(to_squash) && ( echo ${img} | grep -vq nosquash );then
-              dcadd=1
-            elif (to_squash) && ( echo ${img} | grep  -q nosquash );then
-              dcadd=1
-            else
-              dcadd=
-            fi
-          else
-            dcadd=
+            dcadd=1
           fi
           if [ "x${dcadd}" != "x" ];then
             if ( echo "${cfgs}" | egrep -q -- '-dev.yml' );then
@@ -536,45 +592,19 @@ build_images: &build_images
       fi
       log "Using docker-compose overrides:"
       log "$(cat ${dcoverrides})"
-      # use buildkit and his fantastic cache handling
-      vv ${dc} build --build-arg BUILDKIT_INLINE_CACHE=1 ${service} \
-      || ( echo "BUILD ERROR(${cfgs}): ${service}" >> /docker_images_errors )
-      vv docker inspect ${simg} >/dev/null 2>&1||die "failed building ${simg}"
-      # squash images as docker-compose does not support it nativly
-      if (to_squash);then
-        # compute the docker-compose service build: args back to docker CLI build-args
-        buildargs=$($dc config\
-            |docker run -i --rm --entrypoint yq mikefarah/yq:4 e .services.${service}.build.args - -j\
-            |docker run -i --rm imega/jq ".|to_entries[]|\" --build-arg \(.key)=\(.value)\"" -j)
-        if !(vv docker build --squash -t ${cimg} . $buildargs);then exit 1;fi
-      else
-        vv docker tag ${simg} ${cimg}
+      if ( vv $dc build --build-arg BUILDKIT_INLINE_CACHE=1 ${service} ) ;then
+        vv docker inspect ${cimg} >/dev/null 2>&1||die "failed building ${cimg}"
       fi
     }
+    wdc_build() {
+      if !(dc_build "$@");then echo "BUILD ERROR(${cfgs}): ${service}" > /docker_image_errors;fi
+    }
     for service in $DOCKER_BUILT_SERVICES;do
-      vv dc_build ${COMPOSE_PROD_CONFIGS}
-      vv dc_build ${COMPOSE_DEV_CONFIGS}
-      if [ "x${service}" = "xdocs" ];then if !(bash --version >/dev/null 2>&1 );then apk add bash;fi;./docs/build.sh;fi
+      vv wdc_build ${COMPOSE_PROD_CONFIGS}
+      vv wdc_build ${COMPOSE_DEV_CONFIGS}
     done
-    if [ -e /docker_images_errors ];then cat /docker_images_errors;exit 1;fi
+    if [ -e /docker_image_errors ];then cat /docker_image_errors;exit 1;fi
     set +x
-  - &build_step2 |-
-    set -e
-    vv docker inspect ${BUILDCACHE_CURRENT_DOCKER_IMAGE}      >/dev/null
-    vv docker inspect ${BUILDCACHE_CURRENT_DOCKER_IMAGE_DOCS} >/dev/null
-    vv docker inspect ${BUILDCACHE_CURRENT_DOCKER_IMAGE}-dev  >/dev/null
-{%- if not cookiecutter.remove_varnish%}
-    vv docker inspect ${BUILDCACHE_CURRENT_DOCKER_IMAGE_VARNISH}     >/dev/null
-    vv docker inspect ${BUILDCACHE_CURRENT_DOCKER_IMAGE_VARNISH}-dev >/dev/null
-{%- endif %}
-    if (to_squash);then
-{%- if not cookiecutter.remove_varnish%}
-     vv docker inspect ${BUILDCACHE_CURRENT_DOCKER_IMAGE_VARNISH_}-nosquash     >/dev/null
-     vv docker inspect ${BUILDCACHE_CURRENT_DOCKER_IMAGE_VARNISH_}-nosquash-dev >/dev/null
-{%- endif %}
-     vv docker inspect ${BUILDCACHE_CURRENT_DOCKER_IMAGE}-nosquash     >/dev/null
-     vv docker inspect ${BUILDCACHE_CURRENT_DOCKER_IMAGE}-nosquash-dev >/dev/null
-    fi
   - *writeokstatus
   - *waitafterjobs
 
@@ -589,7 +619,6 @@ build_images: &build_images
     echo CONTROL_COMPOSE_FILES=$(echo ${COMPOSE_PROD_CONFIGS}|awk '{print $1}')>>.env;
     set -e;apk update -q;apk add -q bash;echo COMPOSE_PROJECT_NAME=run${CI_PIPELINE_IID}_${CI_JOB_ID}>>.env;
     if ( is_testable ) ;then for i in $DOCKER_SERVICES;do ./control.sh up --force-recreate --no-deps $i;done;fi
-  - *writeokstatus
   allow_failure: true
 
 {% set testsc = (not cookiecutter.test_tests) and '#' or '' -%}
@@ -602,6 +631,7 @@ build_images: &build_images
 {{testsc}}  script:
 {{testsc}}  - *launch_test_stack
 {{testsc}}  - if ( is_testable ) ;then ./control.sh test;fi
+{{testsc}}  - &tests_flag STATUS_FLAG=${TESTS_STATUS_FLAG} writeokstatus
 {{testsc}}#  - if ( is_testable ) ;then ./control.sh coverage;fi
 
 {% set lintingc = (not cookiecutter.test_linting) and '#' or '' -%}
@@ -613,8 +643,8 @@ build_images: &build_images
 {{lintingc}}  script:
 {{lintingc}}  - *launch_test_stack
 {{lintingc}}  - if ( is_testable ) ;then ./control.sh linting;fi
+{{lintingc}}  - &linting_flag STATUS_FLAG=${LINT_STATUS_FLAG} writeokstatus
 {{lintingc}}  allow_failure: true
-
 
 .release_image: &release_image
   <<: [ *build ]
@@ -622,49 +652,51 @@ build_images: &build_images
   # redo the docker login, without the /bin/true, so failing if the registry is down
   - *definefuncs
   - &release_step1 sh /docker_login
-  - addregcacert
+  - *addregcacert
   # quoting & subshelling to work around gitlab variable substitutions
   # we release at least one image in the dockerbuildcache registry,
   # one for release on the tag branch and one for latest when master branch
   - &release_tags |-
     export f=${CI_PROJECT_DIR}/releasedimgs
     set -e
-    cat>${f}<<EOF
+    if ( echo ${CI_COMMIT_REF_NAME} | egrep -q "$TAGGUABLE_IMAGE_BRANCH" ) || ( echo ${CI_COMMIT_REF_NAME} | egrep -q "${CACHEABLE_BUILD_BRANCH}" );then cat>>${f}<<EOF
 {%- if not cookiecutter.remove_varnish%}
-    ${BUILDCACHE_CURRENT_DOCKER_IMAGE_VARNISH}-nosquash-dev ${BUILDCACHE_REF_DOCKER_IMAGE_VARNISH}-nosquash-dev
-    ${BUILDCACHE_CURRENT_DOCKER_IMAGE_VARNISH}-nosquash     ${BUILDCACHE_REF_DOCKER_IMAGE_VARNISH}-nosquash
+    ${BUILDCACHE_CURRENT_DOCKER_IMAGE_VARNISH}-dev ${BUILDCACHE_REF_DOCKER_IMAGE_VARNISH}-dev
+    ${BUILDCACHE_CURRENT_DOCKER_IMAGE_VARNISH}     ${BUILDCACHE_REF_DOCKER_IMAGE_VARNISH}
 {%- endif %}
-    ${BUILDCACHE_CURRENT_DOCKER_IMAGE}-nosquash-dev ${BUILDCACHE_REF_DOCKER_IMAGE}-nosquash-dev
-    ${BUILDCACHE_CURRENT_DOCKER_IMAGE}-nosquash     ${BUILDCACHE_REF_DOCKER_IMAGE}-nosquash
+    ${BUILDCACHE_CURRENT_DOCKER_IMAGE}-dev         ${BUILDCACHE_REF_DOCKER_IMAGE}-dev
+    ${BUILDCACHE_CURRENT_DOCKER_IMAGE}             ${BUILDCACHE_REF_DOCKER_IMAGE}
     EOF
+    fi
     #
     if [ "x${CI_COMMIT_REF_NAME}" = "x${LATEST_BRANCH}" ];then cat>>${f}<<EOF
 {%- if not cookiecutter.remove_varnish%}
     ${BUILDCACHE_CURRENT_DOCKER_IMAGE_VARNISH}-dev ${BUILDCACHE_LATEST_DOCKER_IMAGE_VARNISH}-dev
     ${BUILDCACHE_CURRENT_DOCKER_IMAGE_VARNISH}     ${BUILDCACHE_LATEST_DOCKER_IMAGE_VARNISH}
 {%- endif %}
-    ${BUILDCACHE_CURRENT_DOCKER_IMAGE}-dev ${BUILDCACHE_LATEST_DOCKER_IMAGE}-dev
-    ${BUILDCACHE_CURRENT_DOCKER_IMAGE}     ${BUILDCACHE_LATEST_DOCKER_IMAGE}
+    ${BUILDCACHE_CURRENT_DOCKER_IMAGE}-dev         ${BUILDCACHE_LATEST_DOCKER_IMAGE}-dev
+    ${BUILDCACHE_CURRENT_DOCKER_IMAGE}             ${BUILDCACHE_LATEST_DOCKER_IMAGE}
     EOF
     fi
+    #
     if ( echo ${CI_COMMIT_REF_NAME} | egrep -q "$TAGGUABLE_IMAGE_BRANCH" );then cat>>${f}<<EOF
 {%- if not cookiecutter.remove_varnish%}
     ${BUILDCACHE_CURRENT_DOCKER_IMAGE_VARNISH}-dev ${REF_DOCKER_IMAGE_VARNISH}-dev
     ${BUILDCACHE_CURRENT_DOCKER_IMAGE_VARNISH}     ${REF_DOCKER_IMAGE_VARNISH}
 {%- endif %}
-    ${BUILDCACHE_CURRENT_DOCKER_IMAGE_DOCS} ${BUILDCACHE_DOCKER_IMAGE_DOCS}
-    ${BUILDCACHE_CURRENT_DOCKER_IMAGE}-dev ${REF_DOCKER_IMAGE}-dev
-    ${BUILDCACHE_CURRENT_DOCKER_IMAGE}     ${REF_DOCKER_IMAGE}
+    ${BUILDCACHE_CURRENT_DOCKER_IMAGE}-dev         ${REF_DOCKER_IMAGE}-dev
+    ${BUILDCACHE_CURRENT_DOCKER_IMAGE}             ${REF_DOCKER_IMAGE}
     EOF
-      if [ "x${CI_COMMIT_REF_NAME}" = "x${LATEST_BRANCH}" ];then cat>>${f}<<EOF
+    fi
+    #
+    if [ "x${CI_COMMIT_REF_NAME}" = "x${LATEST_BRANCH}" ];then cat>>${f}<<EOF
 {%- if not cookiecutter.remove_varnish%}
     ${BUILDCACHE_CURRENT_DOCKER_IMAGE_VARNISH}-dev ${LATEST_DOCKER_IMAGE_VARNISH}-dev
     ${BUILDCACHE_CURRENT_DOCKER_IMAGE_VARNISH}     ${LATEST_DOCKER_IMAGE_VARNISH}
 {%- endif %}
-    ${BUILDCACHE_CURRENT_DOCKER_IMAGE}-dev ${LATEST_DOCKER_IMAGE}-dev
-    ${BUILDCACHE_CURRENT_DOCKER_IMAGE}     ${LATEST_DOCKER_IMAGE}
+    ${BUILDCACHE_CURRENT_DOCKER_IMAGE}-dev         ${LATEST_DOCKER_IMAGE}-dev
+    ${BUILDCACHE_CURRENT_DOCKER_IMAGE}             ${LATEST_DOCKER_IMAGE}
     EOF
-      fi
     fi
     while read i;do vv docker tag $(eval echo ${i});done < ${f}
   # release in batch built docker images in parrallel to both cached and release registries
@@ -724,6 +756,7 @@ teardown_workspace: &teardown_workspace
   <<: [ *teardown ]
   script:
   - &teardown_ws rm -rfv "${WORKSPACE}"
+  - &teardown_statics rm -rfv /cache/$CI_PROJECT_PATH_SLUG/statics/*-${CI_PIPELINE_IID}.*
 
 manual_teardown_workspace:
   <<: [ *manual_job, *teardown_workspace ]
@@ -803,7 +836,7 @@ manual_teardown_images: &teardown_images
   - &deploy_key_setup set -e;vv(){ echo "$@">&2;"$@"; };vv
     .ansible/scripts/call_ansible.sh -vv .ansible/playbooks/deploy_key_setup.yml
   script:
-  - &deploy_manual_cmd |-
+  - &deploy_cmd |-
       # do not remove yaml inline (gitlab parse problem)
       set -e
       .ansible/scripts/call_ansible.sh -vv -l $A_ENV_NAME "${DEPLOY_PLAYBOOK}" -e "{cops_drupal_gitref: $CI_COMMIT_REF_NAME, cops_drupal_force_reinstall: $DRUPAL_FORCE_INSTALL}"
@@ -816,6 +849,9 @@ deploy_{{i}}: &deploy_{{i}}
   variables: &deploy_{{i}}_vars
     <<: [ *deploy_vars ]
     A_ENV_NAME: {{i}}
+{%- if i in ['prod'] %}
+    DEPLOY_PLAYBOOK: .ansible/playbooks/delivery.yml
+{%- endif %}
   when: {{ i in ['dev'] and 'on_success' or 'manual' }}
   environment:
     name: {{i}}
@@ -824,13 +860,13 @@ deploy_{{i}}: &deploy_{{i}}
 {%endif-%}{% endfor %}
 # reset jobs
 {% for i in envs %}{%- if cookiecutter[i+'_host'] -%}
-deploy_{{i}}_reset: &deploy_{{i}}_reset
-  <<: [ *deploy_{{i}} ]
-  when: manual
-  variables:
-    <<: [ *deploy_{{i}}_vars ]
-    DRUPAL_FORCE_INSTALL: 1
-    A_ENV_NAME: dev
+{%- set resetcomment = (i in ['staging', 'prod', 'preprod']) and '#  ' or '' %}
+{{resetcomment}}deploy_{{i}}_reset: &deploy_{{i}}_reset
+{{resetcomment}}  <<: [ *deploy_{{i}} ]
+{{resetcomment}}  when: manual
+{{resetcomment}}  variables:
+{{resetcomment}}    <<: [ *deploy_{{i}}_vars ]
+{{resetcomment}}    DRUPAL_FORCE_INSTALL: 1
 {%endif-%}{% endfor %}
 
 # Allow to immediatly trigger a deploy without waiting for the full pipeline to complete
@@ -843,15 +879,12 @@ manual_deploy_{{i}}: &manual_deploy_{{i}}
 
 # As gitlab-ci does not support pipeline branching, for manual dev release, we need
 # to make a last and one-for-all deploy step for non-blocking pipelines when we do a merge request
-{% for i in envs %}{%- if cookiecutter[i+'_host'] -%}
-manual_release_and_deploy_{{i}}: &manual_release_and_deploy_{{i}}
-  <<: [ *deploy_{{i}}, *release_image ]
-  variables:
-    <<: [ *build_images_vars, *release_vars, *deploy_{{i}}_vars ]
-    A_ENV_NAME: {{i}}
+.manual_release_and_deploy: &manual_release_and_deploy
+  variables: &manual_release_and_deploy_vars
+    <<: [ *build_images_vars, *release_vars ]
     REF_DOCKER_IMAGE: ${FORCED_DOCKER_IMAGE}
     LATEST_DOCKER_IMAGE: ${FORCED_DOCKER_IMAGE}
-    BEFORE_STATUS_FLAGS: "{%if cookiecutter.with_bundled_front%}${JSBUILD_STATUS_FLAG}{% endif %}"
+    BEFORE_STATUS_FLAGS: "{%if cookiecutter.with_bundled_front%}${JSBUILD_STATUS_FLAG}{% endif %}{%if cookiecutter.with_bundled_docs%} ${DOCSBUILD_STATUS_FLAG}{% endif %}"
     BEFORE_ALLOW_FAILURE_STATUS_FLAGS: ""
     AFTER_STATUS_FLAGS: ""
     AFTER_ALLOW_FAILURE_STATUS_FLAGS: ""
@@ -860,35 +893,47 @@ manual_release_and_deploy_{{i}}: &manual_release_and_deploy_{{i}}
   image: ${CORPUSPOS_IMAGE}
   stage: manual_jobs
   allow_failure: true
-  services: *services
-  before_script: *full_before_script
   script:
-  - *waitbeforejobs
   - *definefuncs
   - *force_release_vars
-  {{jscomment}}- *warm_statics_tarball
+  {{frontcomment}}- *front_setup
+  {{frontcomment}}- *front_build
+  {{frontcomment}}- *front_save
+  {{docscomment}}- *docs_setup
+  {{docscomment}}- *docs_build
+  {{docscomment}}- *docs_save
+  {{staticscomment}}- *warm_statics_tarball
   - *build_step1
   - *release_step1
   - *release_tags
   - *release_push
+  - *teardown_statics
   - *deploy_setup
   - *deploy_key_setup
-  - &deploy_manual_cmd_{{i}} |-
+  - &deploy_manual_cmd |-
     set -e;.ansible/scripts/call_ansible.sh -vv -l $A_ENV_NAME \
     "${DEPLOY_PLAYBOOK}" -e "{cops_django_docker_tag: $(eval echo ${REF_DOCKER_IMAGE//*:})}"
   after_script: []
-
-{%endif-%}{% endfor %}
+{% for i in envs %}
+{% if cookiecutter[i+'_host'] -%}
+manual_release_and_deploy_{{i}}: &manual_release_and_deploy_{{i}}
+  <<: [ *manual_release_and_deploy, *standalonebuilder, *deploy_{{i}}, *release_image ]
+  variables:
+    <<: [ *manual_release_and_deploy_vars, *deploy_{{i}}_vars ]
+    A_ENV_NAME: {{i}}
+{% endif -%}
+{% endfor %}
 {% if cookiecutter.haproxy %}
 # haproxy jobs
 .haproxy: &haproxy
   variables: &deploy_haproxy_vars
     <<: [ *deploy_vars ]
     DEPLOY_PLAYBOOK: ".ansible/playbooks/haproxy.yml"
-
-{% for i in envs %}{%- if cookiecutter[i+'_host'] -%}
+{% for i in envs %}
+{% if cookiecutter[i+'_host'] -%}
 deploy_haproxy_{{i}}: &deploy_haproxy_{{i}}
   <<: [ *haproxy, *deploy_{{i}} ]
   stage: manual_jobs
-{%endif-%}{% endfor %}
-{% endif %}
+{%- endif -%}
+{%- endfor-%}
+{%- endif -%}

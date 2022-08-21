@@ -142,6 +142,12 @@ do_dcompose() {
     "$@"
 }
 
+#  dbcompose $@: wrapper to docker-compose with build compose files set
+do_dbcompose() {
+    set -- dvv $DCB "$@"
+    "$@"
+}
+
 #  psql $@: wrapper to psql interpreter
 do_psql() {
     cmd='$DC exec db bash -ec "PGUSER=\$POSTGRES_USER PGPASSWORD=\$PGPASSWD PGHOST=\$POSTGRES_HOST PGPORT=\$POSTGRES_PORT PGDATABASE=\$POSTGRES_DB psql'
@@ -548,7 +554,7 @@ do_make_docs() {
 do_main() {
     local args=${@:-usage}
     local actions="up_corpusops|shell|usage|install_docker|setup_corpusops|open_perms_valve"
-    actions="$actions|yamldump|stop|usershell|exec|userexec|dexec|duserexec|dcompose|ps|psql"
+    actions="$actions|yamldump|stop|usershell|exec|userexec|dexec|duserexec|dcompose|dbcompose|ps|psql"
     actions="$actions|init|up|fg|pull|build|buildimages|down|rm|run"
     actions="$actions|cypress_open|cypress_run|cypress_open_local|cypress_open_dev|cypress_run_local|cypress_run_dev"
     actions_drupal="osx_sync|server|tests|test|tests_debug|test_debug|coverage|drush|linting|console|php|make_docs"
