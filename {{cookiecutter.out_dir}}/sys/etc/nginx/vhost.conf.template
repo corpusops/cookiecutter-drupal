@@ -40,13 +40,16 @@ proxy_buffers 4 256k;
 proxy_busy_buffers_size 256k;
 
 # logging setup
-log_format custom_combined '"$remote_addr - $remote_user [$time_local] "$request" $status $bytes_sent "$http_referer" "$http_user_agent" "$gzip_ratio"';
+log_format custom_combined '$remote_addr - $remote_user [$time_local] "$request" $status $bytes_sent "$http_referer" "$http_user_agent" "$gzip_ratio" B';
+log_format front_custom_combined '$remote_addr - $remote_user [$time_local] "$request" $status $bytes_sent "$http_referer" "$http_user_agent" "$gzip_ratio" F';
+log_format redirector_custom_combined '$remote_addr - $remote_user [$time_local] "$request" $status $bytes_sent "$http_referer" "$http_user_agent" "$gzip_ratio" R';
 # Define type of requests going to logs (to remove OPTIONS requests for example)
 map $request_method $method_loggable { OPTIONS 0;default 1;}
 map $request_method $restrict_access { OPTIONS off;default "Restricted";}
 
 # activate real_ip logging
 real_ip_recursive {{'{{'}} $v.real_ip_from_recursive }};
+real_ip_header X-Forwarded-For;
 {{'{{'}} range $v.real_ip_from | splitList " " }}
 set_real_ip_from {{'{{'}} . }};
 {{'{{'}} end }}
@@ -108,14 +111,14 @@ server {
     ssl_prefer_server_ciphers on;
     ssl_dhparam {{'{{'}} $v.diffie }};
     error_log  /logs/drupal-redirector-error.log  {{'{{'}} $v.loglevel }};
-    access_log /logs/drupal-redirector-access.log custom_combined if=$method_loggable;
+    access_log /logs/drupal-redirector-access.log redirector_custom_combined if=$method_loggable;
     rewrite ^(.*)$ ${forwarded_ssl_scheme}://{{'{{'}}$v.server_name}}$request_uri redirect;
 }
 server {
     listen 80;
     server_name {{'{{'}}$v.server_aliases}};
     error_log  /logs/drupal-redirector-error.log  {{'{{'}} $v.loglevel }};
-    access_log /logs/drupal-redirector-access.log custom_combined if=$method_loggable;
+    access_log /logs/drupal-redirector-access.log redirector_custom_combined if=$method_loggable;
     rewrite ^(.*)$ ${forwarded_ssl_scheme}://{{'{{'}}$v.server_name}}$request_uri redirect;
 }
 {{'{{'}} end }}
@@ -130,7 +133,7 @@ server {
     server_name_in_redirect {{'{{'}} $v.server_name_in_redirect }};
 
     error_log  /logs/drupal-front-error.log {{'{{'}} $v.loglevel }};
-    access_log /logs/drupal-front-access.log custom_combined if=$method_loggable;
+    access_log /logs/drupal-front-access.log front_custom_combined if=$method_loggable;
 
     {{'{{'}} define "vhost_proxy" }}
 
@@ -210,7 +213,7 @@ server {
     ssl_prefer_server_ciphers on;
     ssl_dhparam {{'{{'}} $v.diffie }};
     error_log  /logs/ssl-drupal-error.log  {{'{{'}} $v.loglevel }};
-    access_log /logs/ssl-drupal-access.log custom_combined if=$method_loggable;
+    access_log /logs/ssl-drupal-access.log front_custom_combined if=$method_loggable;
 
 {%if not cookiecutter.remove_varnish%}
     {{'{{'}} template "vhost_proxy" $v }}
