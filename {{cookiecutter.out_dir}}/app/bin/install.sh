@@ -4,7 +4,7 @@
 cd "${WWW_DIR}" || die "no $WWW_DIR"
 
 # test mysql availability
-if ! call_drush sqlq "SELECT 'TEST_DB_CONN'" 2>&1 | egrep -q "^\s*TEST_DB_CONN$";then
+if ! call_drush sqlq "SELECT 'TEST_DB_CONN'" 2>&1 | grep -E -q "^\s*TEST_DB_CONN$";then
     die "DB server is not available, install skipped"
 fi
 
