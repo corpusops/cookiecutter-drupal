@@ -92,9 +92,9 @@ types {
     text/cache-manifest                   appcache;
 }
 
-{{if (eq .Env.DRUPAL_ENV_NAME "prod" ) }}
+{{'{{'}}if (eq .Env.DRUPAL_ENV_NAME "prod" ) }}
 server_tokens off;
-{{ end }}
+{{'{{'}} end }}
 
 {{'{{'}}if and (eq $v.redirect_aliases "1" ) ( $v.server_aliases ) }}
 # REDIRECT ALIASES VHOSTS -----------
@@ -110,15 +110,15 @@ server {
     ssl_session_timeout 10m;
     ssl_prefer_server_ciphers on;
     ssl_dhparam {{'{{'}} $v.diffie }};
-    error_log  /logs/drupal-redirector-error.log  {{'{{'}} $v.loglevel }};
-    access_log /logs/drupal-redirector-access.log redirector_custom_combined if=$method_loggable;
+    error_log  /logs/drupal-error.log  {{'{{'}} $v.loglevel }};
+    access_log /logs/drupal-access.log redirector_custom_combined if=$method_loggable;
     rewrite ^(.*)$ ${forwarded_ssl_scheme}://{{'{{'}}$v.server_name}}$request_uri redirect;
 }
 server {
     listen 80;
     server_name {{'{{'}}$v.server_aliases}};
-    error_log  /logs/drupal-redirector-error.log  {{'{{'}} $v.loglevel }};
-    access_log /logs/drupal-redirector-access.log redirector_custom_combined if=$method_loggable;
+    error_log  /logs/drupal-error.log  {{'{{'}} $v.loglevel }};
+    access_log /logs/drupal-access.log redirector_custom_combined if=$method_loggable;
     rewrite ^(.*)$ ${forwarded_ssl_scheme}://{{'{{'}}$v.server_name}}$request_uri redirect;
 }
 {{'{{'}} end }}
@@ -132,8 +132,8 @@ server {
     server_name {{'{{'}} $v.server_name }}{{'{{'}} if and (ne $v.redirect_aliases "1" ) ( $v.server_aliases ) }} {{'{{'}}$v.server_aliases}}{{'{{'}}end}};
     server_name_in_redirect {{'{{'}} $v.server_name_in_redirect }};
 
-    error_log  /logs/drupal-front-error.log {{'{{'}} $v.loglevel }};
-    access_log /logs/drupal-front-access.log front_custom_combined if=$method_loggable;
+    error_log  /logs/drupal-error.log {{'{{'}} $v.loglevel }};
+    access_log /logs/drupal-access.log front_custom_combined if=$method_loggable;
 
     {{'{{'}} define "vhost_proxy" }}
 
@@ -213,7 +213,7 @@ server {
     ssl_prefer_server_ciphers on;
     ssl_dhparam {{'{{'}} $v.diffie }};
     error_log  /logs/ssl-drupal-error.log  {{'{{'}} $v.loglevel }};
-    access_log /logs/ssl-drupal-access.log front_custom_combined if=$method_loggable;
+    access_log /logs/ssl-drupal-access.log custom_combined if=$method_loggable;
 
 {%if not cookiecutter.remove_varnish%}
     {{'{{'}} template "vhost_proxy" $v }}

@@ -7,7 +7,7 @@ x-images:
       args: &args
         BUILDKIT_INLINE_CACHE: "1"
         BASE: "${DRUPAL_BASE_IMAGE:-corpusops/ubuntu-bare:20.04}"
-        # BASE: "${DRUPAL_BASE_IMAGE:-corpusops/debian:11}"
+        # BASE: "${DRUPAL_BASE_IMAGE:-{{cookiecutter.debian_image}}}"
         PHP_VER: "${PHP_VER:-{{cookiecutter.php_ver}}}"
         PHP_GROUP: "${PHP_GROUP-apache}"
         PHP_VER_NO_DOT: "${PHP_VER_NO_DOT:-{{cookiecutter.php_ver|replace('.','')}}}"
@@ -17,12 +17,13 @@ services:
   {%-if not cookiecutter.remove_varnish%}
   varnish:
     <<: [ *env ]
-    build: {args: {<<: [ *args ]}, context: ".", dockerfile: "Dockerfile-Varnish"}
+    build: {args: {<<: [ *args ], BASE: "${VARNISH_IMAGE_BASE:-{{cookiecutter.ubuntu_image}}}"}, context: ".", dockerfile: "Dockerfile-Varnish"}
   {%-endif%}
   {%-if not cookiecutter.remove_doc%}
   docs:
+    <<: [ *env, *drupal ]
     image: "${{'{'}}{{cookiecutter.app_type.upper()}}_IMAGE}:${{'{'}}{{cookiecutter.app_type.upper()}}_IMAGE_VERSION}-docsbuilder"
-    build: {args: {<<: [ *args ], BASE: "${VARNISH_IMAGE_BASE:-corpusops/ubuntu-bare:20.04}"}, context: ".", dockerfile: "Dockerfile-docs"}
+    build: {args: {<<: [ *args ], BASE: "${DOCS_IMAGE_BASE:-{{cookiecutter.ubuntu_image}}}"}, context: ".", dockerfile: "Dockerfile-docs"}
     volumes:
     - ./docs:/code/docs.host
     - ./app:/code/app.host
