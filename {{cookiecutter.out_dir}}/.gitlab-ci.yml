@@ -8,6 +8,7 @@ image: {name: "${COMPOSE_IMAGE}", entrypoint: [""]}
 {%- set envs = ['dev', 'qa', 'staging', 'prod', 'preprod'] %}
 {%- set devhostdeploycomment = (not cookiecutter.dev_host) and '#  ' or '' %}
 {%- set frontcomment = (not cookiecutter.with_bundled_front) and '#  ' or '' %}
+{%- set resetcomment = (not cookiecutter.with_reset_stagingprod_jobs) and '#  ' or '' %}
 {%- set staticscomment = (not (cookiecutter.with_bundled_front or cookiecutter.with_bundled_docs)) and '#  ' or '' %}
 {%- set docscomment = (not cookiecutter.with_bundled_docs) and '#  ' or '' %}
 {%- set envbranchs = [] %}
@@ -18,13 +19,17 @@ image: {name: "${COMPOSE_IMAGE}", entrypoint: [""]}
 {%- set mastertagsenvstrs = (['master','tags']+envbranchs)|join(', ') -%}
 {%- set testsc = (not cookiecutter.test_tests) and '#' or '' -%}
 {%- set lintingc = (not cookiecutter.test_linting) and '#' or '' %}
-
+# - To setup the pipeline you need to configure those CICD Variables:
+# - CORPUSOPS_VAULT_PASSWORD if deploying with ansible
+# - REGISTRY_USER docker registry user
+# - REGISTRY_PASSWORD docker registry password
+# - make sure cachedir and builddir runner directories are shared between stages
 stages:
-  - manual_jobs
-  - build_test_release
-  - end_flag
-  - post_release
-  - postdeploy
+- manual_jobs
+- build_test_release
+- end_flag
+- post_release
+- postdeploy
 
 variables:
   # Keep this two next vars
@@ -40,7 +45,7 @@ variables:
   REGISTRY_IMAGE: "{{cookiecutter.registry_image}}"
   NODE_IMAGE: "{{cookiecutter.node_image}}"
   #
-  NODE_SH: "docker run -u $(id -u) -v $(pwd):/h -w /h -e PATH=/h/node_modules/.bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin --rm ${NODE_IMAGE}:$(cat .nvmrc)-slim bash"
+  NODE_SH: "docker run -u $(id -u) -v $(pwd):/h -w /h -e PATH=/h/node_modules/.bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin --rm ${NODE_IMAGE}:$(cat .nvmrc){{cookiecutter.node_image_flavor}} bash"
   DOCKER_BUILDKIT: "1"
   COMPOSE_DOCKER_CLI_BUILD: "1"
   BUILDKIT_PROGRESS: plain
@@ -174,8 +179,9 @@ variables:
 #     - .ci_cache
 
 # /!\  /!\  /!\
-# We use (ba)sh -c to enforce 3rd level of variables resolution,
-# Indeed, gitlab-ci would not interpret multiple nested variables, eg: $PRELOAD_IMAGES
+# We use (ba)sh -c to enforce multiple levels of variables resolution,
+# please see https://gitlab.com/gitlab-org/gitlab-runner/-/issues/1809
+# Indeed, gitlab-ci would not interpret multiple nested variables
 # /!\  /!\  /!\
 #
 before_script: &top_before_script
@@ -278,6 +284,7 @@ before_script: &top_before_script
     -e "s/^([^=]+_IMAGE_VERSION=.*)latest/\\1build-${CI_PIPELINE_IID}/g" \
     -e "s|$DOCKER_REGISTRY|$BUILDCACHE_REGISTRY|g"                       \
     -e "s/^(CI_COMMIT_SHA=).*/\\1${CI_COMMIT_SHA}/g" > $env;done;
+    for i in SHELL_DEBUG SDEBUG NO_STARTUP_LOGS NO_SILENT;do eval printf "$i=\${$i-}\\\n">>.env;done
 - &warm_statics_tarball
   sh -ec "for t in \"\${STATICS_TARBALL}\" \"\${DOCS_TARBALL}\";do
   if [ -n ${STATICS_LOAD-} ] && [ -e \"\$t\" ];then
@@ -549,8 +556,6 @@ build_images: &build_images
     # copy in compose image the wanted docker binary version
     docker-compose --version
     if [ "x${CI_BYPASS_DOCKERBUILD-}" != "x" ];then sed -i "5,$ d" local/*deploy-common/Dockerfile*;fi
-    # squash images directly with docker as docker-compose does not support it nativly
-    # but with taking off from compose configuration the build args
     dc_build() {
       cfgs="${@}"
       MAIN_COMPOSE=$(echo $cfgs|awk '{print $1}')
@@ -631,8 +636,9 @@ build_images: &build_images
 {{testsc}}  script:
 {{testsc}}  - *launch_test_stack
 {{testsc}}  - if ( is_testable ) ;then ./control.sh test;fi
-{{testsc}}  - &tests_flag STATUS_FLAG=${TESTS_STATUS_FLAG} writeokstatus
 {{testsc}}#  - if ( is_testable ) ;then ./control.sh coverage;fi
+{{testsc}}  - &tests_flag STATUS_FLAG=${TESTS_STATUS_FLAG} writeokstatus
+{{testsc}}  - *waitafterjobs
 
 {% set lintingc = (not cookiecutter.test_linting) and '#' or '' -%}
 {{lintingc}}linting:
@@ -644,6 +650,7 @@ build_images: &build_images
 {{lintingc}}  - *launch_test_stack
 {{lintingc}}  - if ( is_testable ) ;then ./control.sh linting;fi
 {{lintingc}}  - &linting_flag STATUS_FLAG=${LINT_STATUS_FLAG} writeokstatus
+{{lintingc}}  - *waitafterjobs
 {{lintingc}}  allow_failure: true
 
 .release_image: &release_image
@@ -932,8 +939,7 @@ manual_release_and_deploy_{{i}}: &manual_release_and_deploy_{{i}}
 {% for i in envs %}
 {% if cookiecutter[i+'_host'] -%}
 deploy_haproxy_{{i}}: &deploy_haproxy_{{i}}
-  <<: [ *haproxy, *deploy_{{i}} ]
-  stage: manual_jobs
+  <<: [ *haproxy, *manual_job, *deploy_{{i}} ]
 {%- endif -%}
 {%- endfor-%}
 {%- endif -%}

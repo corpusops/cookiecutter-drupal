@@ -96,7 +96,7 @@
     "postgres_image": "{{cookiecutter.postgresql_image}}",
     "mysql_image": "corpusops/mysql",
     "redis_image": "corpusops/redis:4.0-alpine",
-    "nginx_image": "corpusops/nginx:1.14-alpine",
+    "nginx_image": "corpusops/nginx:1.19-alpine",
     "user_model": "",
     "php_user": "{{cookiecutter.app_type}}",
     "php_group": "{%if cookiecutter.base_os=='centos'%}apache{%else%}www-data{%endif%}",
@@ -130,5 +130,6 @@
     "corpusops_image": "corpusops/ubuntu:20.04",
     "docs_folders": "app/var/private/doc*",
     "statics_folders": "app/www/profiles/*/themes/*/dist",
+    "node_image_flavor": "slim",
     "monitoring_network": "10.0.0.0/8"
 }

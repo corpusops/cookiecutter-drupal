@@ -184,12 +184,6 @@ services:
       - nginx
     volumes:
       - ./sys/etc/varnish/varnish.vcl.frep:/docker/sys/etc/varnish/varnish.vcl.frep
-    links:
-      # for BAN request allow
-      - "cron:cron"
-      - "drupal:drupal"
-      # for backend targeting
-      - "nginx:nginx"
   {%-endif %}
   nginx:
     <<: [ *env ]
@@ -197,9 +191,6 @@ services:
     depends_on:
       - {{cookiecutter.app_type}}
       - mailcatcher
-    links:
-      - {{cookiecutter.app_type}}:{{cookiecutter.app_type}}
-      - mailcatcher:mailcatcher
     volumes:
       - ./sys/etc/nginx/vhost.conf.template:/etc/nginx/conf.d/default.conf.template
       - webroot:{{cookiecutter.public_path}}

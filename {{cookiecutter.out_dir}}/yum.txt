@@ -66,3 +66,4 @@ supervisor
 openssl
 rsync
 patch
+# dev deps are there but as in drupal in dev mode we need those tools to run composer, we cant strip them from the final image
