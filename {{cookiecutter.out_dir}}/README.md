@@ -413,3 +413,29 @@ docker-compose -f docker-compose.yml -f docker-compose-dev.yml up -d db
 # wait for database stuff to be installed
 docker-compose -f docker-compose.yml -f docker-compose-dev.yml up {{cookiecutter.app_type}}
 ```
+
+
+## Load a staging/prod database on another env
+controller is localhost, the box where you run the playbook, so your laptop, but can be any configured ansible host.
+
+```sh
+.ansible/scripts/call_ansible.sh -vvvv .ansible/playbooks/teleport.yml \
+-e "{teleport_destination: controller, teleport_origin: prod, teleport_debug: true}"
+```
+
+Think to look after the site homepage to see if it's avalaible, and in case it's on a 503 error or else, but the teleport did not failed, reboot the stack
+
+```sh
+./control.sh down
+./control.sh up
+```
+
+If your CSS styles are broken, rebuild them and flush drupal cache
+
+```sh
+npm install && npm ci
+# or
+yarn install && yarn build
+
+./control.sh  userexec "cd www && ../bin/drush cr"
+```
