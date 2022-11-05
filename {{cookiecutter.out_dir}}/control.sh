@@ -545,10 +545,16 @@ do_make_docs() {
         -e NO_BUILD=${NO_BUILD-} \
         -e NO_INIT=${NO_HTML-} \
         -e NO_CLEAN=${NO_CLEAN-} \
+        -e HOST_USER_UID=$(id -u) \
         -e SOURCEDIR=${SOURCEDIR-} \
         -e BUILDDIR=${BUILDDIR-} \
         -e DEBUG=${DEBUG-} \
         docs "$@"
+}
+
+#  doc: generate documentation
+do_doc() {
+    do_make_docs "$@"
 }
 
 do_main() {
@@ -557,7 +563,7 @@ do_main() {
     actions="$actions|yamldump|stop|usershell|exec|userexec|dexec|duserexec|dcompose|dbcompose|ps|psql"
     actions="$actions|init|up|fg|pull|build|buildimages|down|rm|run"
     actions="$actions|cypress_open|cypress_run|cypress_open_local|cypress_open_dev|cypress_run_local|cypress_run_dev"
-    actions_drupal="osx_sync|server|tests|test|tests_debug|test_debug|coverage|drush|linting|console|php|make_docs"
+    actions_drupal="osx_sync|server|tests|test|tests_debug|test_debug|coverage|drush|linting|console|php|make_docs|doc"
     actions="@($actions|$actions_drupal)"
     action=${1-}
     source_envs
