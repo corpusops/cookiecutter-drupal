@@ -143,7 +143,7 @@ variables:
 
   # {{cookiecutter.lname}} settings
 {%-if cookiecutter.use_submodule_for_deploy_code%}
-  DJANGO_DEPLOY_VERSION: origin/stable
+  DRUPAL_DEPLOY_VERSION: origin/stable
 {%endif%}
   PROJECT_COMMON_DEPLOY_DIR: {{cookiecutter.deploy_project_dir}}
   # debug
@@ -256,7 +256,7 @@ before_script: &top_before_script
 - &pullsubmodules
     if !( echo ${GIT_SUBMODULE_STRATEGY-} | egrep -q none );then
     set -e;if ! (git --version >/dev/null 2>&1);then apk update;apk add git;fi &&
-    cd ${PROJECT_COMMON_DEPLOY_DIR};( git fetch --unshallow  >/dev/null 2>&1 || true );git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*";git fetch origin;git reset --hard $DJANGO_DEPLOY_VERSION --;cd - >/dev/null 2>&1;
+    cd ${PROJECT_COMMON_DEPLOY_DIR};( git fetch --unshallow  >/dev/null 2>&1 || true );git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*";git fetch origin;git reset --hard $DRUPAL_DEPLOY_VERSION --;cd - >/dev/null 2>&1;
     fi
 - &addregcacert addregcacert
 # first registry login does not have to success, we only want it to be available on release
@@ -925,7 +925,7 @@ manual_deploy_{{i}}: &manual_deploy_{{i}}
   - *deploy_key_setup
   - &deploy_manual_cmd |-
     set -e;.ansible/scripts/call_ansible.sh -vv -l $A_ENV_NAME \
-    "${DEPLOY_PLAYBOOK}" -e "{cops_django_docker_tag: $(eval echo ${REF_DOCKER_IMAGE//*:})}"
+    "${DEPLOY_PLAYBOOK}" -e "{cops_drupal_docker_tag: $(eval echo ${REF_DOCKER_IMAGE//*:})}"
   after_script: []
 {% for i in envs %}
 {% if cookiecutter[i+'_host'] -%}
