@@ -6,7 +6,7 @@ x-images:
       context: "."
       args: &args
         BUILDKIT_INLINE_CACHE: "1"
-        BASE: "${DRUPAL_BASE_IMAGE:-corpusops/ubuntu-bare:20.04}"
+        BASE: "${DRUPAL_BASE_IMAGE:-{{cookiecutter.base_image}}}"
         # BASE: "${DRUPAL_BASE_IMAGE:-{{cookiecutter.debian_image}}}"
         PHP_VER: "${PHP_VER:-{{cookiecutter.php_ver}}}"
         PHP_GROUP: "${PHP_GROUP-apache}"
