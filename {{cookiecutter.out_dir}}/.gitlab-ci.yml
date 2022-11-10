@@ -913,10 +913,10 @@ manual_teardown_images: &teardown_images
         export RELEASED_DOCKER_IMAGE_VARNISH=$LATEST_DOCKER_IMAGE_VARNISH
 {%- endif %}
       else
-        export A_ENV_NAME=$CI_COMMIT_REF_NAME
+        export A_ENV_NAME=${A_ENV_NAME:-${CI_COMMIT_REF_NAME}}
         export RELEASED_DOCKER_IMAGE=$TAGGUED_DOCKER_IMAGE
 {%- if not cookiecutter.remove_varnish %}
-        export RELEASED_DOCKER_IMAGE_VARNISH=$TAGGUED_DOCKER_IMAGE_VARNISH
+        export RELEASED_DOCKER_IMAGE_VARNISH=$REF_DOCKER_IMAGE_VARNISH
 {%- endif %}
       fi
 {%-if cookiecutter.use_submodule_for_deploy_code%}
