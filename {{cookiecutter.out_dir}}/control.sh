@@ -48,9 +48,10 @@ CONTROL_COMPOSE_FILES="${CONTROL_COMPOSE_FILES:-$DEFAULT_CONTROL_COMPOSE_FILES}"
 COMPOSE_COMMAND=${COMPOSE_COMMAND:-docker-compose}
 ENV_FILES="${ENV_FILES:-.env docker.env}"
 # special case: be sure to define some docker internal variables but let them overridable through .env
-export DOCKER_BUILDKIT=${DOCKER_BUILDKIT-1}
-export COMPOSE_DOCKER_CLI_BUILD=${COMPOSE_DOCKER_CLI_BUILD-1}
-export BUILDKIT_PROGRESS=${BUILDKIT_PROGRESS-plain}
+export DOCKER_BUILDKIT="${DOCKER_BUILDKIT-1}"
+export COMPOSE_DOCKER_CLI_BUILD="${COMPOSE_DOCKER_CLI_BUILD-1}"
+export BUILDKIT_PROGRESS="${BUILDKIT_PROGRESS-plain}"
+export BUILDKIT_INLINE_CACHE="${BUILDKIT_INLINE_CACHE-1}"
 
 join_by() { local IFS="$1"; shift; echo "$*"; }
 
