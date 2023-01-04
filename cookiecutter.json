@@ -125,6 +125,7 @@
     "deploy_playbook": ".ansible/playbooks/app.yml",
     "with_bundled_docs": "",
     "with_bundled_front": "",
+    "with_teleport_stagingprod_jobs": "",
     "node_version": "14.18.0",
     "node_image": "corpusops/node",
     "corpusops_image": "corpusops/ubuntu:20.04",
@@ -132,5 +133,6 @@
     "statics_folders": "app/www/profiles/*/themes/*/dist",
     "node_image_flavor": "slim",
     "with_reset_stagingprod_jobs": "",
+    "main_branch": "master",
     "monitoring_network": "10.0.0.0/8"
 }
