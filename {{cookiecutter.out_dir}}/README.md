@@ -1,3 +1,5 @@
+{%- set envs = ['dev', 'qa', 'staging', 'prod', 'preprod'] %}
+{%- set aenvs = [] %}{%- for i in envs %}{% if cookiecutter.get(i+'_host', '')%}{% set _ = aenvs.append(i) %}{%endif%}{%endfor%}
 # Initialize your development environment
 
 All following commands must be run only once at project installation.
@@ -413,6 +415,45 @@ docker-compose -f docker-compose.yml -f docker-compose-dev.yml up -d db
 # wait for database stuff to be installed
 docker-compose -f docker-compose.yml -f docker-compose-dev.yml up {{cookiecutter.app_type}}
 ```
+
+## Pipelines workflows tied to deploy environments and built docker images
+### TL;DR
+- We use deploy branches where some git **branches** are dedicated to deploy related **gitlab**, **configuration managment tool's environments**, and **docker images tags**.<br/>
+- You can use them to deliver to a specific environment either by:
+    1. Not using promotion workflow and only pushing to this branch and waiting for the whole pipeline to complete the image build, and then deploy on the targeted env.
+    2. Using tags promotion: "Docker Image Promotion is the process of promoting Docker Images between registries to ensure that only approved and verified images are used in the right environments, such as production."<br/>
+        - You **run or has run a successful pipeline with the code you want to deploy**, (surely ``{{cookiecutter.main_branch}}``).
+        - You can then **``promote`` its tag** to either **one or all** env(s) with the ``promote_*`` jobs and reuse the previously produced tag.<br/>
+        - After the succesful promotion, you can then manually **deploy on the targeted env(s)**.
+
+### Using promotion in practice
+- As an example, we are taking <br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;the ``{{aenvs[-2]}}`` branch which is tied to <br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;the {{aenvs[-2]}} **inventory ansible group**<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;and deliver the {{aenvs[-2]}} **docker image**<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;and associated resources on the **{{aenvs[-2]}} environment**.
+- First, run an entire pipeline on the branch (eg:``{{cookiecutter.main_branch}}``)  and the commit you want to deploy.<br/>
+  Please note that it can also be another branch like `stable` if `stable` branch was configured to produce the `stable` docker tags via the `TAGGUABLE_IMAGE_BRANCH` [`.gitlab-ci.yml`](./.gitlab-ci.yml) setting.
+- Push your commit to the desired related env branche(s) (remove the ones you won't deploy now) to track the commit you are deploying onto
+
+    ```sh
+    # on local main branch
+    git fetch --all
+    git reset --hard origin/{{cookiecutter.main_branch}}
+    git push --force origin{% for i in aenvs %} HEAD:{{i}}{%endfor %}
+    ```
+    1. Go to your gitab project ``pipelines`` section and immediately kill/cancel all launched pipelines.
+    2. Find the killed pipeline on the environment (branch) you want to deploy onto (and if you don't have it, launch one via the ``Run pipeline`` button and **immediatly kill** it),<br/>
+       Click on the ``canceled/running`` button link which links the pipeline details), <br/>
+       It will lead to a jobs dashboard which is really appropriated to complete next steps.<br/>
+       Either run:
+        - ``promote_all_envs``: promote all deploy branches with the selected ``FROM_PROMOTE`` tag (see just below).
+        - ``promote_single_env``: promote only this env with the selected ``FROM_PROMOTE`` tag (see just below).
+        - Indeed, **in both jobs**, you can override the default promoted tag which is ``latest`` with the help of that ``FROM_PROMOTE`` pipeline/environment variable.<br/>
+          This can help in those following cases:
+            - If you want `production` to be deployed with the `dev` image, you can then set `FROM_PROMOTE=dev`.
+            - If you want `dev` to be deployed with the `stable` image produced by the `stable` branch, you can then set `FROM_PROMOTE=stable`.
+    3. Upon successful promotion, run the ``manual_deploy_$env`` job. (eg: ``manual_deploy_dev``)
 
 
 ## Load a staging/prod database on another env
