@@ -17,8 +17,8 @@ image: {name: "${COMPOSE_IMAGE}", entrypoint: [""]}
 {%- for i in gitlabci_envs %}{% if cookiecutter.get(i+'_host')%}
 {%- set _ = envbranchs.append(cookiecutter[i+'_branch']) %}
 {%- endif %}{%endfor %}
-{%- set {{cookiecutter.main_branch}}envstrs = ([cookiecutter.main_branch]+envbranchs)|join(', ') %}
-{%- set {{cookiecutter.main_branch}}tagsenvstrs = ([cookiecutter.main_branch,'tags']+envbranchs)|join(', ') -%}
+{%- set masterenvstrs = ([cookiecutter.main_branch]+envbranchs)|join(', ') %}
+{%- set mastertagsenvstrs = ([cookiecutter.main_branch,'tags']+envbranchs)|join(', ') -%}
 {%- set testsc = (not cookiecutter.test_tests) and '#' or '' -%}
 {%- set lintingc = (not cookiecutter.test_linting) and '#' or '' %}
 # - To setup the pipeline you need to configure those CICD Variables:
@@ -137,8 +137,11 @@ variables:
   AFTER_STATUS_TIMEOUT: "1800"
   PRELOAD_BUILDCACHE_IMAGES: $BUILDCACHE_DOCKER_IMAGE_DOCS $BUILDCACHE_CURRENT_DOCKER_IMAGE_DOCS ${BUILDCACHE_REF_DOCKER_IMAGE}-nosquash $BUILDCACHE_CURRENT_DOCKER_IMAGE $BUILDCACHE_REF_DOCKER_IMAGE $BUILDCACHE_LATEST_DOCKER_IMAGE{% if not cookiecutter.remove_varnish %} $LATEST_DOCKER_IMAGE_VARNISH $REF_DOCKER_IMAGE_VARNISH{%endif%}
   PRELOAD_RELEASED_IMAGES: $REF_DOCKER_IMAGE $LATEST_DOCKER_IMAGE
-  CACHEABLE_BUILD_BRANCH: ".*"
-  TAGGUABLE_IMAGE_BRANCH: "^({{cookiecutter.main_branch}}|dev|qa|staging|preprod|prod)$"
+  # default to $TAGGUABLE_IMAGE_BRANCH
+  CACHEABLE_BUILD_BRANCH: ""
+  IMAGE_FLAVORS: "(-?(latest|dev)(-dev)?)"
+  EXTRA_DOCKER_TAGS: "^((docs|js)builder)$"
+  TAGGUABLE_IMAGE_BRANCH: "^(latest|{{cookiecutter.main_branch}}|dev|qa|staging|preprod|prod)"
   SKIP_TEST_BRANCHES: "(qa|staging|preprod|prod)"
   CACHE_DAYS: "7"
   STATICS_FOLDERS: "{{cookiecutter.statics_folders}}"
@@ -217,8 +220,8 @@ before_script: &top_before_script
    die() { log "$@";exit 1; }
    vv() { log "$@";"$@"; }
    #
-   rcu() { u=$1;shift;vv curl -sku gitlab:gitlab "$@" http://${BUILDCACHE_REGISTRY}/v2/$u; }
-   lcu() { u=$1;shift;vv curl -sku gitlab:gitlab "$@" http://localhost:5000/v2/$u; }
+   rcu() { u=$1;shift;vv curl -sku gitlab:gitlab "$@" https://${BUILDCACHE_REGISTRY}/v2/$u; }
+   lcu() { u=$1;shift;vv curl -sku gitlab:gitlab "$@" https://localhost:5000/v2/$u; }
    vvrgc() { vv registry garbage-collect $@ ${c}; }
    #
    wait_ready() { s="${s:-0.5}";t="${t:-800}";start=$(date +%s);until ("$@";);do
@@ -563,7 +566,7 @@ services_tower: &services_tower
 {{docscomment}}      vv docker inspect ${BUILDCACHE_CURRENT_DOCKER_IMAGE_DOCS} >/dev/null
 {{docscomment}}      vv docker tag ${BUILDCACHE_CURRENT_DOCKER_IMAGE_DOCS} ${BUILDCACHE_DOCKER_IMAGE_DOCS}
 {{docscomment}}      vv docker tag ${BUILDCACHE_CURRENT_DOCKER_IMAGE_DOCS} ${BUILDCACHE_REF_DOCKER_IMAGE_DOCS}
-{{docscomment}}      ( echo $CI_COMMIT_REF_NAME | egrep -q "$TAGGUABLE_IMAGE_BRANCH" ) && vv docker push ${BUILDCACHE_DOCKER_IMAGE_DOCS}
+{{docscomment}}      ( echo $CI_COMMIT_REF_NAME | egrep -q "$TAGGUABLE_IMAGE_BRANCH$" ) && vv docker push ${BUILDCACHE_DOCKER_IMAGE_DOCS}
 {{docscomment}}      ( echo $CI_COMMIT_REF_NAME | egrep -q "^$MAIN_BRANCH$") && vv docker push ${BUILDCACHE_REF_DOCKER_IMAGE_DOCS}
 {{docscomment}}  - &docs_build ./docs/build.sh
 {{docscomment}}  - &docs_save tar czf "${DOCS_TARBALL}" ${DOCS_FOLDERS}
@@ -698,8 +701,8 @@ build_images: &build_images
   - &release_tags |-
     export f=${CI_PROJECT_DIR}/releasedimgs
     set -e
-    cache_tags="latest|$(eval echo '${CACHEABLE_BUILD_BRANCH:-${TAGGUABLE_IMAGE_BRANCH}}')"
-    if ( echo ${CI_COMMIT_REF_NAME} | egrep -q "$TAGGUABLE_IMAGE_BRANCH" ) || ( echo ${CI_COMMIT_REF_NAME} | egrep -q "${cache_tags}" );then cat>>${f}<<EOF
+    cache_tags="$(eval echo '"(${CACHEABLE_BUILD_BRANCH:-${TAGGUABLE_IMAGE_BRANCH}}|${EXTRA_DOCKER_TAGS})(${IMAGE_FLAVORS})?"')$"
+    if ( echo ${CI_COMMIT_REF_NAME} | egrep -q "$TAGGUABLE_IMAGE_BRANCH$" ) || ( echo ${CI_COMMIT_REF_NAME} | egrep -q "${cache_tags}" );then cat>>${f}<<EOF
 {%- if not cookiecutter.remove_varnish%}
     ${BUILDCACHE_CURRENT_DOCKER_IMAGE_VARNISH}-dev ${BUILDCACHE_REF_DOCKER_IMAGE_VARNISH}-dev
     ${BUILDCACHE_CURRENT_DOCKER_IMAGE_VARNISH}     ${BUILDCACHE_REF_DOCKER_IMAGE_VARNISH}
@@ -719,7 +722,7 @@ build_images: &build_images
     EOF
     fi
     #
-    if ( echo ${CI_COMMIT_REF_NAME} | egrep -q "$TAGGUABLE_IMAGE_BRANCH" );then cat>>${f}<<EOF
+    if ( echo ${CI_COMMIT_REF_NAME} | egrep -q "$TAGGUABLE_IMAGE_BRANCH$" );then cat>>${f}<<EOF
 {%- if not cookiecutter.remove_varnish%}
     ${BUILDCACHE_CURRENT_DOCKER_IMAGE_VARNISH}-dev ${REF_DOCKER_IMAGE_VARNISH}-dev
     ${BUILDCACHE_CURRENT_DOCKER_IMAGE_VARNISH}     ${REF_DOCKER_IMAGE_VARNISH}
@@ -810,20 +813,20 @@ teardown_workspace: &teardown_workspace
   - *gendockerlogin
   - &cleanup_tags |-
     set -e
+    cache_tags="$(eval echo '"(${CACHEABLE_BUILD_BRANCH:-${TAGGUABLE_IMAGE_BRANCH}}|${EXTRA_DOCKER_TAGS})(${IMAGE_FLAVORS})?"')$"
     addregcacert
-    cache_tags="latest|$(eval echo '${CACHEABLE_BUILD_BRANCH:-${TAGGUABLE_IMAGE_BRANCH}}')"
     ( set +x && sh /docker_login )
     apk update && apk add openssl curl ca-certificates jq bash
     : "We use a workaround for tag deletion see https://github.com/regclient/regclient/blob/ee6331/regclient/tag.go#L82"
     for repo in $(rcu _catalog|jq -r .repositories[] );do for t in $(rcu ${repo}/tags/list|jq -r .tags[] 2>/dev/null|sort -V);do
       rimg=${repo}:${t};dimg=${BUILDCACHE_REGISTRY}/${rimg}
-      if ! (echo ${t} | sed -re "s/-dev$//g" | egrep -q "${cache_tags}") || [ "x${CLEANUP_ALL_TAGS}" != "x" ];then
+      if ! (echo ${t} | egrep -q "${cache_tags}") || [ "x${CLEANUP_ALL_TAGS}" != "x" ];then
         digest=$( ( rcu ${repo}/manifests/${t} -vX HEAD \
-                        -H "Accept: application/vnd.docker.distribution.manifest.v2+json" 2>&1 || true ) \
-                    | grep 'docker-content-digest:' | awk '{print $3}' )
+                        -H "Accept: application/vnd.docker.distribution.manifest.v2+json" 2>&1 \
+                        | grep 'docker-content-digest:' | awk '{print $3}' ) || true )
         if [ "x${digest}" != "x" ];then
           log "deleting ${rimg}(${digest})";
-          rcu ${repo}/manifests/${digest} -X DELETE;
+          rcu ${repo}/manifests/${digest} -X DELETE || true;
         fi;
       fi;
     done;done
