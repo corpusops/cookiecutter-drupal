@@ -139,7 +139,7 @@ variables:
   PRELOAD_RELEASED_IMAGES: $REF_DOCKER_IMAGE $LATEST_DOCKER_IMAGE
   # default to $TAGGUABLE_IMAGE_BRANCH
   CACHEABLE_BUILD_BRANCH: ""
-  IMAGE_FLAVORS: "(-?(latest|dev)(-dev)?)"
+  IMAGE_FLAVORS: "(-?(latest|dev)(docs|js)builder)(-dev)?)"
   EXTRA_DOCKER_TAGS: "^((docs|js)builder)$"
   TAGGUABLE_IMAGE_BRANCH: "^(latest|{{cookiecutter.main_branch}}|dev|qa|staging|preprod|prod)"
   SKIP_TEST_BRANCHES: "(qa|staging|preprod|prod)"
