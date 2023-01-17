@@ -4,6 +4,24 @@
 
 All following commands must be run only once at project installation.
 
+# TL;DR;
+
+```sh
+git checkout
+git submodule init # only the fist time
+git submodule update --recursive
+./control.sh init
+./control.sh build
+./control.sh up
+./control.sh ps
+./control.sh userexec bin/composerinstall
+./control.sh userexec DRUPAL_FORCE_INSTALL=1 bin/install.sh
+./control.sh userexec bin/post_update.sh
+# with 127.0.0.1 {{cookiecutter.lname}}.local in /etc/hosts
+./control.sh cypress_open_local
+./control.sh userexec bin/drush uli
+```
+
 ## First clone
 
 ```sh
@@ -106,9 +124,9 @@ For example if you have:
 ```bash
 ./control.sh dcompose config\
  |docker run -i mikefarah/yq e '.services.drupal.environment' -|grep ABSOLUT
-  ABSOLUTE_URL_SCHEME=http
-  ABSOLUTE_URL_DOMAIN={{cookiecutter.local_domain}}
-  ABSOLUTE_URL_PORT={{cookiecutter.local_http_port}}
+ABSOLUTE_URL_SCHEME=http
+ABSOLUTE_URL_DOMAIN={{cookiecutter.local_domain}}
+ABSOLUTE_URL_PORT={{cookiecutter.local_http_port}}
 ```
 
 The project should be reached in http://{{cookiecutter.local_domain}}:{{cookiecutter.local_http_port}} and {{cookiecutter.local_domain}} must resolve to 127.0.0.1.
@@ -244,8 +262,8 @@ Once you have build once your image, you have two options to reuse your image as
 
 Adding this to ``.vscode/settings.json`` would help to give you a smooth editing experience
 
-  ```json
-  {
+```json
+{
   "breadcrumbs.enabled": true,
   "css.validate": true,
   "diffEditor.ignoreTrimWhitespace": false,
@@ -455,6 +473,20 @@ docker-compose -f docker-compose.yml -f docker-compose-dev.yml up {{cookiecutter
             - If you want `dev` to be deployed with the `stable` image produced by the `stable` branch, you can then set `FROM_PROMOTE=stable`.
     3. Upon successful promotion, run the ``manual_deploy_$env`` job. (eg: ``manual_deploy_dev``)
 
+
+# Teleport (load one env from one another)
+init your vault (see [`docs/deploy.md`](./docs/README.md#docs#generate-vault-password-file)).
+
+```sh
+CORPUSOPS_VAULT_PASSWORD="xxx" .ansible/scripts/setup_vaults.sh
+```
+
+```sh
+# Generate SSH deploy key locally for ansible to work and dump
+# the ssh key contained in inventory in a place suitable
+# by ssh client (ansible)
+.ansible/scripts/call_ansible.sh .ansible/playbooks/deploy_key_setup.yml
+```
 
 ## Load a staging/prod database on another env
 controller is localhost, the box where you run the playbook, so your laptop, but can be any configured ansible host.
