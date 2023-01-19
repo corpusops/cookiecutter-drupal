@@ -132,6 +132,7 @@ variables:
   LINT_STATUS_FLAG:         /cache/$CI_PROJECT_PATH_SLUG/w/${CI_PIPELINE_IID}/status_flags_lint
   RELEASE_STATUS_FLAG:      /cache/$CI_PROJECT_PATH_SLUG/w/${CI_PIPELINE_IID}/status_flags_release
   PIPELINE_FLAG:            /cache/$CI_PROJECT_PATH_SLUG/w/${CI_PIPELINE_IID}/status_flags_pipeline
+  GARBAGE_COLLECT_FLAG:     /cache/$CI_PROJECT_PATH_SLUG/w/${CI_PIPELINE_IID}/garbage-collect
   COMPOSE_HTTP_TIMEOUT:  "1800"
   BEFORE_STATUS_TIMEOUT: "900"
   AFTER_STATUS_TIMEOUT: "1800"
@@ -375,10 +376,10 @@ services: &services
       cp -fv "${REGISTRY_ROOTDIRECTORY}"/ssl/*ca*crt "${i}"
     done
     ( update-ca-certificates || true )
-    ( set +x;while true;do if [ -e ${BUILDCACHE_ROOTDIRECTORY}/garbage-collect ];then \
+    ( set +x;while true;do if [ -e ${GARBAGE_COLLECT_FLAG} ];then \
         echo "Run garbage colect"; \
         /entrypoint.sh garbage-collect /etc/docker/registry/config.yml -m --dry-run=false; \
-        ( rm -f ${BUILDCACHE_ROOTDIRECTORY}/garbage-collect || true; );  \
+        ( rm -f ${GARBAGE_COLLECT_FLAG} || true; );  \
       fi;sleep 1;done; )&
     ( unset REGISTRY_AUTH_HTPASSWD_REALM REGISTRY_AUTH_HTPASSWD_PATH \
       && export REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY="${PROXYCACHE_ROOTDIRECTORY}" \
@@ -830,9 +831,8 @@ teardown_workspace: &teardown_workspace
         fi;
       fi;
     done;done
-    f="${BUILDCACHE_ROOTDIRECTORY}/garbage-collect"
-    touch "${f}"
-    while [ -f "${f}" ];do echo "Waiting for docker-registry cleanup";sleep 10;done
+    touch "${GARBAGE_COLLECT_FLAG}"
+    garbage_collection() { [ ! -e "${GARBAGE_COLLECT_FLAG}" ] ; };t=300 vwait_ready garbage_collection || die "docker-registry had never cleanup"
   - &teardown_ws rm -rfv "${WORKSPACE}"
   - &teardown_statics rm -rfv /cache/$CI_PROJECT_PATH_SLUG/statics/*-${CI_PIPELINE_IID}.*
 
