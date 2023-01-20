@@ -140,7 +140,7 @@ variables:
   PRELOAD_RELEASED_IMAGES: $REF_DOCKER_IMAGE $LATEST_DOCKER_IMAGE
   # default to $TAGGUABLE_IMAGE_BRANCH
   CACHEABLE_BUILD_BRANCH: ""
-  IMAGE_FLAVORS: "(-?(latest|dev)(docs|js)builder)(-dev)?)"
+  IMAGE_FLAVORS: "((-?(latest|dev))|((docs|js)builder))?(-dev)?"
   EXTRA_DOCKER_TAGS: "^((docs|js)builder)$"
   TAGGUABLE_IMAGE_BRANCH: "^(latest|{{cookiecutter.main_branch}}|dev|qa|staging|preprod|prod)"
   SKIP_TEST_BRANCHES: "(qa|staging|preprod|prod)"
@@ -826,7 +826,8 @@ teardown_workspace: &teardown_workspace
                         -H "Accept: application/vnd.docker.distribution.manifest.v2+json" 2>&1 \
                         | grep 'docker-content-digest:' | awk '{print $3}' ) || true )
         if [ "x${digest}" != "x" ];then
-          log "deleting ${rimg}(${digest})";
+          log "deleting ${dimg}(${digest})";
+          printf "FROM scratch\nLABEL deleter=$t\n\n"|docker build -t ${dimg} -;docker push ${dimg};
           rcu ${repo}/manifests/${digest} -X DELETE || true;
         fi;
       fi;
