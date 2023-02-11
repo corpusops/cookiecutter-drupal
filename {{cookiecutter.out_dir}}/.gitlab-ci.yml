@@ -199,10 +199,11 @@ before_script: &top_before_script
    dockerregistertag() { vv docker tag ${1} ${2};tags="$(uniquify ${tags} ${2})"; }
    adddockertag() {
 {%- if not cookiecutter.remove_varnish %}
-     dockerregistertag ${1}-dev ${BUILDCACHE_REGISTRY}/${DOCKER_IMAGE_VARNISH}:${2}-dev
-     dockerregistertag ${1}     ${BUILDCACHE_REGISTRY}/${DOCKER_IMAGE_VARNISH}:${2}
-     dockerregistertag ${1}-dev ${DOCKER_REGISTRY}/${DOCKER_IMAGE_VARNISH}:${2}-dev
-     dockerregistertag ${1}     ${DOCKER_REGISTRY}/${DOCKER_IMAGE_VARNISH}:${2}
+     vt="${3-$(eval echo "${DOCKER_REGISTRY}/${DOCKER_IMAGE_VARNISH}:${FROM_PROMOTE:-latest}")}"
+     dockerregistertag ${vt}-dev ${BUILDCACHE_REGISTRY}/${DOCKER_IMAGE_VARNISH}:${2}-dev
+     dockerregistertag ${vt}     ${BUILDCACHE_REGISTRY}/${DOCKER_IMAGE_VARNISH}:${2}
+     dockerregistertag ${vt}-dev ${DOCKER_REGISTRY}/${DOCKER_IMAGE_VARNISH}:${2}-dev
+     dockerregistertag ${vt}     ${DOCKER_REGISTRY}/${DOCKER_IMAGE_VARNISH}:${2}
 {%- endif %}
      dockerregistertag ${1}     ${BUILDCACHE_REGISTRY}/${DOCKER_IMAGE}:${2}
      dockerregistertag ${1}-dev ${BUILDCACHE_REGISTRY}/${DOCKER_IMAGE}:${2}-dev
