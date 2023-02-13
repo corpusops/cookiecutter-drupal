@@ -1050,12 +1050,13 @@ promote_all_envs: &promote_all_envs
   - |-
     set -e
     t="$(eval echo "${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${FROM_PROMOTE}")"
+    vt="$( echo "${DOCKER_REGISTRY}/${DOCKER_IMAGE_VARNISH}:${FROM_PROMOTE:-latest}")"
     tags=""
-    for flav in "" "-dev";do vv docker pull ${t}${flav};done
+    for flav in "" "-dev";do vv docker pull ${t}${flav};docker pull ${vt}${flav};done
     for i in $(uniquify $(eval echo ${TO_PROMOTE}) );do
-      adddockertag ${t} ${i}
+      adddockertag ${t} ${i} ${vt}
       if [ "x${i}" = "x${MAIN_BRANCH}" ];then
-        adddockertag ${t} latest
+        adddockertag ${t} latest ${vt}
       fi
     done
     for i in $tags;do vv docker push ${i};done
