@@ -33,8 +33,10 @@
 {{'{{-'}} $v := merge $v ( dict "access_log"                  ( .Env.NGINX_ACCESS_LOG | default "/dev/stdout" )                              ) }}
 {{'{{-'}} $v := merge $v ( dict "ssl_error_log"               ( .Env.NGINX_SSL_ERROR_LOG  | default "/dev/stdout" )                          ) }}
 {{'{{-'}} $v := merge $v ( dict "ssl_access_log"              ( .Env.NGINX_SSL_ACCESS_LOG | default "/dev/stdout" )                          ) }}
-{{'{{-'}} $v := merge $v ( dict "app_root"                    ( .Env.NGINX_DRUPAL_APP_ROOT | default "/code/app" )                           ) }}
+{{'{{-'}} $v := merge $v ( dict "base_dir"                    ( .Env.BASE_DIR | default "/code" )                                            ) }}
+{{'{{-'}} $v := merge $v ( dict "app_root"                    ( .Env.NGINX_DRUPAL_APP_ROOT | default ( print $v.base_dir "/app" ) )          ) }}
 {{'{{-'}} $v := merge $v ( dict "doc_root"                    ( .Env.NGINX_DRUPAL_DOC_ROOT | default ( print $v.app_root "/www" ) )          ) }}
+{{'{{-'}} $v := merge $v ( dict "private_path"                ( .Env.NGINX_DRUPAL_PRIVATE_PATH | default ( print $v.app_root "/var/private" ) ) ) }}
 {{'{{-'}} $v := merge $v ( dict "maintenance_flag"            ( .Env.NGINX_DRUPAL_MAINT_FLAG | default ( print $v.app_root "/var/private/MAINTENANCE" ) ) ) }}
 
 # optimize internal nginx buffers

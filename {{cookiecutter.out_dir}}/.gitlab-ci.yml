@@ -75,7 +75,7 @@ variables: &variables
   # services launched during tests
   DOCKER_SERVICES: "db{% if cookiecutter.cache_system%} {{cookiecutter.cache_system}}{%endif%} mailcatcher"
   # cache registry setup
-  REGISTRIES_cache_DIR: /cache/cachedockerregistrysimple/proxy
+  REGISTRIES_CACHE_DIR: /cache/cachedockerregistrysimple
   # Build pipeline images flavors: build/tags/{{cookiecutter.main_branch}}
   # Released images flavors: build/forcedrelease/tags/{{cookiecutter.main_branch}}
   LATEST_CI_DOCKER_IMAGE: "${DOCKER_REGISTRY}/${DOCKER_IMAGE}:ci-latest"
@@ -102,10 +102,9 @@ variables: &variables
   # Allow to have many compose stacks aside.
   COMPOSE_PROD_CONFIGS: docker-compose.yml:docker-compose-prod.yml:docker-compose-build.yml
   COMPOSE_DEV_CONFIGS:  docker-compose.yml:docker-compose-dev.yml:docker-compose-build.yml:docker-compose-build-dev.yml
-  DOCKER_VOLUMES: "publiccontrib:/code/app/var/public private:/code/app/var/private webroot:/code/app/var/nginxwebroot docs:/code/outdocs data:/code/data publiccontrib:$CI_PROJECT_DIR/app/var/public private:$CI_PROJECT_DIR/app/var/private webroot:$CI_PROJECT_DIR/app/var/nginxwebroot data:$CI_PROJECT_DIR/data docs:$CI_PROJECT_DIR/outdocs"
+  DOCKER_VOLUMES: "publiccontrib:$CI_PROJECT_DIR/app/var/public private:$CI_PROJECT_DIR/app/var/private webroot:$CI_PROJECT_DIR/app/var/nginxwebroot data:$CI_PROJECT_DIR/data docs:$CI_PROJECT_DIR/outdocs"
   DEPLOY_PLAYBOOK: "{{cookiecutter.deploy_playbook}}"
   DOCKER_BUILDER:     corpusops
-  REGISTRIES_CACHE_DIR: /cache/cachedockerregistrysimple
   DOCKER_CACHE:         /cache/$CI_PROJECT_PATH_SLUG/dockercache
   WORKSPACE:            /cache/$CI_PROJECT_PATH_SLUG/w/${CI_PIPELINE_IID}
   # $COMMON_HOSTS_FILE is a workaround for https://gitlab.com/gitlab-org/gitlab-runner/-/issues/1042
@@ -147,10 +146,10 @@ variables: &variables
   - &skip_not_a_push_trigger {if: "$CI_PIPELINE_SOURCE !~ /push/", when: never}
   - &skip_not_main_trigger                      {if: "$CI_COMMIT_REF_NAME != $MAIN_BRANCH", when: never}
   - &skip_on_release_branches_main_tags_trigger {if: "$CI_COMMIT_REF_NAME =~ /^({{gitlabci_branches|join('|')}})$/ || $CI_COMMIT_REF_NAME != $MAIN_BRANCH || $CI_COMMIT_TAG == null", when: never}
-  - &skip_on_release_branches_tags_trigger      {if: "$CI_COMMIT_REF_NAME =~ /^({{gitlabci_branches|join('|')}})$/ || $CI_COMMIT_TAG != null", when: never}
-  - &on_release_branches_main_tags_trigger      {if: "$CI_COMMIT_REF_NAME =~ /^({{gitlabci_branches|join('|')}})$/ || $CI_COMMIT_REF_NAME == $MAIN_BRANCH || $CI_COMMIT_TAG != null", when: on_success}
-  - &mon_release_branches_main_tags_trigger     {if: "$CI_COMMIT_REF_NAME =~ /^({{gitlabci_branches|join('|')}})$/ || $CI_COMMIT_REF_NAME == $MAIN_BRANCH || $CI_COMMIT_TAG != null", when: manual}
-  - &on_release_branches_tags_trigger           {if: "$CI_COMMIT_REF_NAME =~ /^({{gitlabci_branches|join('|')}})$/ || $CI_COMMIT_TAG != null", when: on_success}
+  - &skip_on_release_branches_tags_trigger      {if: "$CI_COMMIT_REF_NAME =~ /^({{gitlabci_branches|join('|')}})$/{% if not cookiecutter.no_tags_pipelines%} || $CI_COMMIT_TAG != null{%endif%}", when: never}
+  - &on_release_branches_main_tags_trigger      {if: "$CI_COMMIT_REF_NAME =~ /^({{gitlabci_branches|join('|')}})$/ || $CI_COMMIT_REF_NAME == $MAIN_BRANCH{% if not cookiecutter.no_tags_pipelines%} || $CI_COMMIT_TAG != null{%endif%}", when: on_success}
+  - &mon_release_branches_main_tags_trigger     {if: "$CI_COMMIT_REF_NAME =~ /^({{gitlabci_branches|join('|')}})$/ || $CI_COMMIT_REF_NAME == $MAIN_BRANCH{% if not cookiecutter.no_tags_pipelines%} || $CI_COMMIT_TAG != null{%endif%}", when: manual}
+  - &on_release_branches_tags_trigger           {if: "$CI_COMMIT_REF_NAME =~ /^({{gitlabci_branches|join('|')}})$/{% if not cookiecutter.no_tags_pipelines%} || $CI_COMMIT_TAG != null{%endif%}", when: on_success}
   - &on_main_and_tags_trigger                   {if: "$CI_COMMIT_REF_NAME == $MAIN_BRANCH || $CI_COMMIT_TAG == null", when: on_success}
 .manual_releasable: &manual_releasable {rules: [ *skip_mr_trigger, *mon_release_branches_main_tags_trigger, {when: never} ]}
 
@@ -213,12 +212,18 @@ before_script: &top_before_script
     (cat /dev/zero|read -t ${s}||exit 0);done; }
    vwait_ready() { vv wait_ready "$@"; }
    wait_docker() { docker system info >/dev/null 2>&1; }
-   # see https://gitlab.com/gitlab-org/gitlab-runner/-/issues/28121: workaround to have shared-alike-volumes between services & local script
+   # see https://gitlab.com/gitlab-org/gitlab-runner/-/issues/28121: workaround to have shared-alike-volumes between services & local script inside $CI_PROJECT_DIR
    setup_docker_volumes() {
-     set -e;w="$(eval echo ${WORKSPACE})";for i in $(eval echo ${DOCKER_VOLUMES});do
-       d="${i//*:}";o="$w/$CI_JOB_NAME/${i//:*}";create_dirs "$o" "$d";if [ -e "$d" ];then rm -rf $d;fi;ln -sfv "$o" "$d"
+     set -e;w="${CI_PROJECT_DIR}/gitlab_docker_volumes";for i in $(eval echo ${DOCKER_VOLUMES});do
+       d="${i//*:}";o="$w/$CI_JOB_NAME/${i//:*}";create_dirs "$o" "$d";
+       if [ -e "$d" ];then
+        # transfer any existing file to the shared directory
+        while read sd;do if [ -e "$d/$sd" ];then cp -rf "$d/$sd" "$o"/;fi;done < <(cd "$d" && find -mindepth 1 -maxdepth 1 \( -type f -or -type d \) )
+        rm -rf "$d"
+       fi
+       ln -sfv "$o" "$d"
      done
-   }
+   } 
    # see https://github.com/moby/buildkit/issues/1896: swap cache folder upon new image creation to avoid eternaly growing cache
    swap_cache_folder() {
      for i in $@;do log "swap docker cache_folder: $i"
@@ -655,9 +660,19 @@ force_build_ci_images: &force_build_ci_images
       DRUPAL_SETTINGS__smtp_DOT_settings___smtp_username: "mailcatcher"
       DRUPAL_SETTINGS__smtp_DOT_settings___smtp_password: "mailcatcher"
       PHP_MEMORY_LIMIT: "{{cookiecutter.php_memory_limit}}"
-      NGINX_DRUPAL_APP_ROOT:   "$CI_PROJECT_DIR/app"
-      NGINX_DRUPAL_DOC_ROOT:   "$CI_PROJECT_DIR/app/www"
-      NGINX_DRUPAL_MAINT_FLAG: "$CI_PROJECT_DIR/app/var/private/MAINTENANCE"
+      TOPDIR:                  "$CI_PROJECT_DIR"
+      BASE_DIR:                "$CI_PROJECT_DIR"
+      ROOTPATH:                "$CI_PROJECT_DIR"
+      TOPDIR_CANDIDATES:       "$CI_PROJECT_DIR"
+      SRC_DIR:                 "$CI_PROJECT_DIR/app"
+      ROOTPATH:                "$CI_PROJECT_DIR/app"
+      PROJECT_DIR:             "$CI_PROJECT_DIR/app"
+      COMPOSER_INSTALLED_FILE: "$CI_PROJECT_DIR/app/.composerinstalled"
+      NO_MIGRATE: "1"
+      NO_COLLECT_STATIC: "1"
+      NO_STARTUP_LOGS: "1"
+      NO_INSTALL: "1"
+      NO_COMPOSER: "1"       
   #rules:
   ## do not run tests on deploy branches
   #- if: "$CI_COMMIT_REF_NAME =~ /^({{gitlabci_branches|join('|')}})$/ || $CI_PIPELINE_SOURCE =~ /schedule/"
@@ -705,16 +720,12 @@ force_build_ci_images: &force_build_ci_images
     set -e && cd $CI_PROJECT_DIR && ( rm -rf init || true ) && mkdir init{% if cookiecutter.use_submodule_for_deploy_code%} && cp -rf $PROJECT_COMMON_DEPLOY_DIR/sys/* init/ {%endif%} && cp -rf sys/* init
   - &setup_tests |-
     set -e
+    export SHELL_USER="{{cookiecutter.app_type}}"
     d=$CI_PROJECT_DIR;while ( echo $d | grep -q $CI_BUILDS_DIR );do od=$d;d=$(dirname $d);chmod u+rwx,g+x,o+x "$od" "$d";done
-    chown -Rf {{cookiecutter.app_type}} $CI_PROJECT_DIR
-    export TOPDIR="${CI_PROJECT_DIR}" TOPDIR_CANDIDATES="${CI_PROJECT_DIR}" \
-           SRC_DIR="$CI_PROJECT_DIR/app" SHELL_USER="$(whoami)" \
-           NO_MIGRATE="1" NO_COLLECT_STATIC="" NO_STARTUP_LOGS="" NO_INSTALL="1" NO_COMPOSER="1"
-    export ROOTPATH="$SRC_DIR" PROJECT_DIR="$SRC_DIR"
+    chown -Rf $SHELL_USER $CI_PROJECT_DIR
     cd $SRC_DIR
-    ../init/init.sh echo settings configured >&2
-  - &composerinstall cd $SRC_DIR && NO_COMPOSER="" bin/composerinstall
-  - &siteinstall cd $SRC_DIR && NO_INSTALL="" DRUPAL_FORCE_INSTALL=1 bin/install.sh
+  - &composerinstall set -e && cd $SRC_DIR && SHELL_USER=$(whoami) bin/composerinstall --no-scripts && touch "${COMPOSER_INSTALLED_FILE}"
+  - &appmigrate cd $SRC_DIR && NO_STARTUP_LOGS= NO_COLLECT_STATIC= NO_INSTALL= DRUPAL_FORCE_INSTALL=1 ../init/init.sh bin/install.sh
 {%- set testsc = (not cookiecutter.test_tests) and '#' or '' %}
 {%- set testscov = (not cookiecutter.test_coverage) and '# ' or '' %}
 {{testsc}}tests: &tests
@@ -726,7 +737,7 @@ force_build_ci_images: &force_build_ci_images
 {{testsc}}{%- if not cookiecutter.remove_cron %}
 {{testsc}}{%-     set _ = cfgs.extend(['cron']) %}
 {{testsc}}{%- endif %}
-{{testsc}}    ( export SUPERVISORD_CONFIGS='{{cfgs|join(' ')}}';vv /code/init/init.sh supervisord.sh)&
+{{testsc}}    ( export export SHELL_USER=root SUPERVISORD_CONFIGS='{{cfgs|join(' ')}}';vv /code/init/init.sh supervisord.sh)&
 {{testsc}}  - &do_tests |-
 {{testsc}}    set -e;
 {{testsc}}    _curl() { curl -kvvvvvH "X-SSL: 1" -H "HOST: $NGINX_SERVERNAME" $@; }
@@ -827,7 +838,7 @@ manual_teardown_workspace:
       .ansible/scripts/call_ansible.sh -vv -l $A_ENV_NAME "${DEPLOY_PLAYBOOK}" -e "{cops_{{cookiecutter.app_type}}_gitref: '$DEPLOYED_BRANCH', cops_{{cookiecutter.app_type}}_docker_tag: '$DEPLOYED_TAG', cops_{{cookiecutter.app_type}}_force_reinstall: $DJANGO_FORCE_INSTALL}"
 {% for i in gitlabci_envs %}
 
-.deploy_{{i}}_rules: &deploy_{{i}}_rules {only: {variables: ['$CI_COMMIT_TAG != null || $CI_COMMIT_REF_NAME == $MAIN_BRANCH || $CI_COMMIT_REF_NAME == "{{cookiecutter[i+'_branch']}}"']}}
+.deploy_{{i}}_rules: &deploy_{{i}}_rules {only: {variables: ['{% if not cookiecutter.no_tags_pipelines%}$CI_COMMIT_TAG != null || {%endif%}$CI_COMMIT_REF_NAME == $MAIN_BRANCH || $CI_COMMIT_REF_NAME == "{{cookiecutter[i+'_branch']}}"']}}
 .deploy_{{i}}: &deploy_{{i}}
   <<: [ *deploy_{{i}}_rules, *deploy ]
   variables: &deploy_{{i}}_vars
@@ -933,6 +944,7 @@ promote_single_env: &promote_single_env
     <<: [ *promote_single_env_vars ]
     FROM_PROMOTE: "$CI_COMMIT_REF_NAME"
     A_ENV_NAME: "${TO_PROMOTE}"
+    DEPLOYED_BRANCH: "${TO_PROMOTE}"
     DEPLOYED_TAG: "${TO_PROMOTE}"
 {% for i in gitlabci_envs %}
 
@@ -951,6 +963,7 @@ promote_and_deploy_{{i}}: { <<: [ *promote_and_deploy_{{i}} ], stage: post_relea
 {{teleportcomment}}  when: manual
 {{teleportcomment}}  dependencies: []
 {{teleportcomment}}  allow_failure: true
+{{teleportcomment}}  only: [{%if not cookiecutter.no_tags_pipelines%}tags, {%endif%}{{cookiecutter.main_branch}}, deploy]
 {{teleportcomment}}  stage: manual_jobs
 {{teleportcomment}}  variables: &teleport_env_vars
 {{teleportcomment}}    <<: [ *deploy_vars ]
@@ -990,8 +1003,8 @@ promote_and_deploy_{{i}}: { <<: [ *promote_and_deploy_{{i}} ], stage: post_relea
 {{teleportcomment}}    dest: {{i}}
 {%- endif %}
 {%- endfor %}
-{%- set cypresscomment = (not cookiecutter.test_cypress) and '#  ' or '' %}
 
+{%- set cypresscomment = (not cookiecutter.test_cypress) and '#  ' or '' %}
 {{cypresscomment}}e2etests:
 {{cypresscomment}}  image: "${CORPUSOPS_IMAGE}"
 {{cypresscomment}}  <<: [ *deploy_dev_rules, *manual_job, *dind, *ci_runner ]
@@ -999,4 +1012,3 @@ promote_and_deploy_{{i}}: { <<: [ *promote_and_deploy_{{i}} ], stage: post_relea
 {{cypresscomment}}  variables: {CI: "true", COMPOSE_FILE: docker-compose.yml}
 {{cypresscomment}}  script: ["./control.sh cypress_run https://{{cookiecutter.dev_domain}}"]
 {{cypresscomment}}  artifacts: {paths: ["./e2e/cypress/screenshots", "./e2e/cypress/videos"], when: on_failure, expire_in: 4 hours}
-

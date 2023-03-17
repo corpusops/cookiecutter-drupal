@@ -1,5 +1,8 @@
+{{'{{'}}- $bd := .Env.BASE_DIR | default "/code" }}
+{{'{{'}}- $pp := .Env.PRIVATE_PATH | default ( print $bd "/app/private" ) }}
+{{'{{'}}- $sc := .Env.SUSPEND_CRONS | default ( print $pp "/SUSPEND_CRONS" ) }}
 MAILTO=""
 # Launching a cron scheduler
-CRONLOG=/code/app/var/private/logs/cronlog
+CRONLOG={{'{{'}}$bd}}/var/private/logs/cron.log
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
-* * * * *   drupal /bin/bash -c "date -Iseconds>$CRONLOG;[ ! -e /code/app/var/private/SUSPEND_CRONS ] && /code/app/bin/drush core:cron &>>$CRONLOG;date -Iseconds>>$CRONLOG"
+* * * * *   drupal /bin/bash -c "date -Iseconds>$CRONLOG;[ ! -e {{'{{'}}$sc}} ] && {{'{{'}}$bd}}/app/bin/drush core:cron &>>$CRONLOG;date -Iseconds>>$CRONLOG"
