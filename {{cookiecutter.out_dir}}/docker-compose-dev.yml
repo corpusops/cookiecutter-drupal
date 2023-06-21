@@ -7,12 +7,12 @@ x-images:
     environment: &{{cookiecutter.app_type}}_env
       DRUPAL_ENV_NAME: "${DRUPAL_ENV_NAME-dev}"
       APP_SECRET: "${APP_SECRET-11111111111111111111111111111111}"
-      PHP_DISPLAY_ERROR: 1
-      NO_MIGRATE: "1"
-      NO_COLLECT_STATIC: "1"
-      NO_CACHE_CLEAR: "1"
-      NO_COMPOSER: "1"
-      NO_INSTALL: "1"
+      PHP_DISPLAY_ERROR: "${PHP_DISPLAY_ERROR-1}"
+      NO_MIGRATE: "${NO_MIGRATE-1}"
+      NO_COLLECT_STATIC: "${NO_COLLECT_STATIC-1}"
+      NO_CACHE_CLEAR: "${NO_CACHE_CLEAR-1}"
+      NO_COMPOSER: "${NO_COMPOSER-1}"
+      NO_INSTALL: "${NO_INSTALL-1}"
       # Resolve Docker mac problems
       # NO_FIXPERMS: "1"
       # if you need to debug the docker init uncomment the next 2 lines
