@@ -97,6 +97,8 @@ die(){ log $@;exit 1; }
 
 vv() { log "$@";"$@";}
 
+debug() { if [[ -n $DEBUG ]];then log "$@";fi }
+
 dvv() { if [[ -n $DEBUG ]];then log "$@";fi;"$@";}
 
 #  up_corpusops: update corpusops
@@ -145,13 +147,13 @@ _shell() {
 #  dcompose $@: wrapper to docker-compose
 do_dcompose() {
     set -- dvv $DC "$@"
-    ( export COMPOSE_FILE="$COMPOSE_FILE_RUN" && "$@" )
+    ( export COMPOSE_FILE="$COMPOSE_FILE_RUN" && debug "using COMPOSE_FILE=$COMPOSE_FILE" && "$@" )
 }
 
 #  dbcompose $@: wrapper to docker-compose with build compose files set
 do_dbcompose() {
     set -- dvv $DCB "$@"
-    ( export COMPOSE_FILE="$COMPOSE_FILE_BUILD" && "$@" )
+    ( export COMPOSE_FILE="$COMPOSE_FILE_BUILD" && debug "using COMPOSE_FILE=$COMPOSE_FILE" && "$@" )
 }
 
 #  mysql $@: wrapper to mysql interpreter

@@ -57,6 +57,7 @@ x-images:
       MYSQL_PORT: "${MYSQL_PORT-3306}"
       MYSQL_DATABASE: "${MYSQL_DATABASE-db}"
       MYSQL_USER: "${MYSQL_USER-user}"
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-${MYSQL_PASSWORD:-password}}"
       MYSQL_PASSWORD: "${MYSQL_PASSWORD-password}"
       DATABASE_DRIVER: "${DATABASE_DRIVER-mysql}"
       DATABASE_DB: "${MYSQL_DATABASE-db}"
@@ -170,22 +171,30 @@ services:
     image: "{{cookiecutter.redis_image}}"
     hostname: redis
     volumes:
-      - 'redis:/data'
+    - 'redis:/data'
 {%-endif%}
   db:
     <<: [ *env ]
     image: "{{cookiecutter["{0}_image".format(cookiecutter.db_mode)]}}"
-    {% if db_tag == 'mysql' %}
+{%- if cookiecutter.db_mode.startswith('post') %}
+    entrypoint:
+    - sh
+    - '-exc'
+    - |
+      docker-entrypoint.sh postgres -N $$POSTGRES_MAX_CONNECTIONS
+{%- endif %}
     environment:
       <<: [ *env_vars ]
-      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-${MYSQL_PASSWORD:-password}}"
+{%- if cookiecutter.db_mode.startswith('p') %}
+      POSTGRES_MAX_CONNECTIONS: "${POSTGRES_MAX_CONNECTIONS:-2000}"
+{%- endif %}
     volumes:
-      - mysql:/var/lib/mysql
-    {% endif %}
-    {% if db_tag == 'postgres' %}
-    volumes:
-      - postgresql:/var/lib/postgresql/data
-    {% endif %}
+{%- if cookiecutter.db_mode.startswith('p') %}
+    - postgresql:/var/lib/postgresql/data
+{%- elif cookiecutter.db_mode.startswith('m') %}
+    - mysql:/var/lib/mysql
+{%-endif %}
+
   {%-if not cookiecutter.remove_varnish%}
   varnish:
     <<: [ *env ]
