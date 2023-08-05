@@ -131,6 +131,7 @@
     "node_version": "14.18.0",
     "node_image": "corpusops/node",
     "corpusops_image": "corpusops/ubuntu:20.04",
+    "docs_folder": "app/var/private/docs",
     "docs_folders": "app/var/private/doc*",
     "statics_folders": "app/www/profiles/*/themes/*/dist",
     "node_image_flavor": "-slim",

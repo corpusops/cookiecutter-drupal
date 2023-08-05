@@ -28,6 +28,7 @@ services:
     - "${DRUPAL_API_LISTEN:-127.0.0.1}:${DRUPAL_API_PORT:-9000}:9000"
 {%- if not cookiecutter.remove_cron %}
   cron:
+    <<: [ *{{cookiecutter.app_type}} ]
     restart: unless-stopped
 {%- endif%}
   backup:

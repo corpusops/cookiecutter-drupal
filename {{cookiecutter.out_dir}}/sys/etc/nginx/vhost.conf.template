@@ -359,7 +359,7 @@ server {
 {% endif %}
 
         # check maintenance marker on shared directory
-        if (-f  $document_root/MAINTENANCE) {
+        if (-f  /code/app/var/private/MAINTENANCE) {
             return 503;
         }
 
