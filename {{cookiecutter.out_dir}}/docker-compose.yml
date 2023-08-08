@@ -106,6 +106,7 @@ x-images:
       DRUPAL_SETTINGS__smtp_DOT_settings___smtp_autotls:  "${DRUPAL_SETTINGS__smtp_DOT_settings___smtp_autotls-raw:::true}"
       DRUPAL_SETTINGS__smtp_DOT_settings___smtp_username: "${DRUPAL_SETTINGS__smtp_DOT_settings___smtp_username-mailcatcher}"
       DRUPAL_SETTINGS__smtp_DOT_settings___smtp_password: "${DRUPAL_SETTINGS__smtp_DOT_settings___smtp_password-mailcatcher}"
+      PHP_MEMORY_LIMIT: "${PHP_MEMORY_LIMIT:-{{cookiecutter.php_memory_limit}}}"
 
   {{cookiecutter.app_type}}: &{{cookiecutter.app_type}}
     <<: [ *env ]
@@ -257,7 +258,6 @@ services:
   backup:
     <<: [ *env ]
     image: "corpusops/dbsmartbackup:{{db_tag}}-{{cookiecutter.db_version}}"
-    restart: always
     volumes:
       - backupdb-dumps:/var/db_smart_backup/
       - backupdb-logs:/var/db_smart_backup/logs/

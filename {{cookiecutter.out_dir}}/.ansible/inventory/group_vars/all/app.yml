@@ -32,3 +32,4 @@ cops_drupal_use_varnish: true
 # uncomment to only save only bdd on delivery
 # cops_drupal_backup_docker_volumes: []
 # cops_drupal_backup_paths_to_backup: []
+cops_drupal_php_memory_limit: "{{cookiecutter.php_memory_limit}}"
