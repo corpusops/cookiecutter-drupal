@@ -137,11 +137,11 @@ x-images:
     #- cache:{{cookiecutter.cache_path}}
     # volume that we need to feed for nginx docker
     - webroot:/code/app/var/nginxwebroot
-    {%-if not cookiecutter.remove_doc%}
+{% -if not cookiecutter.remove_doc%}
     # host doc dir mounted inside container
     - ./app/var/private/docs:/code/app/var/private/docs
-{%endif%}
-      - ./data:/code/data
+{%-endif%}
+    - ./data:/code/data
 services:
   mailcatcher:
     <<: [ *env ]
