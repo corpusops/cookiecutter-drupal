@@ -14,6 +14,7 @@
 {{'{{-'}} $v := merge $v ( dict "server_name"                 ( .Env.NGINX_SERVERNAME | default "localhost" )                                ) -}}
 {{'{{-'}} $v := merge $v ( dict "server_aliases"              ( .Env.NGINX_SERVER_ALIASES | default "" )                                     ) -}}
 {{'{{-'}} $v := merge $v ( dict "port"                        ( .Env.NGINX_PORT | default "80" )                                             ) }}
+{{'{{-'}} $v := merge $v ( dict "internal_port"               ( .Env.NGINX_INTERNAL_PORT | default "80" )                                    ) }}
 {{'{{-'}} $v := merge $v ( dict "ssl_port"                    ( .Env.NGINX_SSL_PORT | default "443" )                                        ) }}
 {{'{{-'}} $v := merge $v ( dict "redirect_aliases"            ( .Env.NGINX_REDIRECT_ALIASES | default "0" )                                  ) -}}
 {{'{{-'}} $v := merge $v ( dict "server_name_in_redirect"     ( .Env.NGINX_SERVERNAME_IN_REDIRECT | default "on" )                           ) -}}
@@ -238,7 +239,7 @@ map $http_x_zorg_caesar $varnish_origin_lockdown_failure {
 {% endif %}
 server {
 {%-if not cookiecutter.remove_varnish%}
-    listen {{'{{'}}$v.port}};
+    listen {{$v.internal_port}};
 {%- else %}
     listen 80;
 {%- endif%}
