@@ -204,10 +204,10 @@ before_script: &top_before_script
      dockerregistertag ${1}-dev ${DOCKER_REGISTRY}/${DOCKER_IMAGE_VARNISH}:${2}-dev
      dockerregistertag ${1}     ${DOCKER_REGISTRY}/${DOCKER_IMAGE_VARNISH}:${2}
 {%- endif %}
-     dockerregistertag ${1} ${BUILDCACHE_REGISTRY}/${DOCKER_IMAGE}:${2}
-     dockerregistertag ${1} ${BUILDCACHE_REGISTRY}/${DOCKER_IMAGE}:${2}-dev
-     dockerregistertag ${1} ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${2}
-     dockerregistertag ${1} ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${2}-dev
+     dockerregistertag ${1}     ${BUILDCACHE_REGISTRY}/${DOCKER_IMAGE}:${2}
+     dockerregistertag ${1}-dev ${BUILDCACHE_REGISTRY}/${DOCKER_IMAGE}:${2}-dev
+     dockerregistertag ${1}     ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${2}
+     dockerregistertag ${1}-dev ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${2}-dev
    }
    is_testable() { if ( echo "${CI_COMMIT_REF_NAME}" | egrep -q "${SKIP_TEST_BRANCHES}" );then return 1;fi;return 0; }
    addregcacert() {
