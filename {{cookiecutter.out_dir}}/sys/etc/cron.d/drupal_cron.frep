@@ -1,3 +1,5 @@
 MAILTO=""
 # Launching a cron scheduler
-* * * * *   drupal  [ ! -e /code/app/var/private/SUSPEND_CRONS ] && /code/app/bin/drush core:cron
+CRONLOG=/code/app/var/private/logs/cronlog
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+* * * * *   drupal /bin/bash -c "date -Iseconds>$CRONLOG;[ ! -e /code/app/var/private/SUSPEND_CRONS ] && /code/app/bin/drush core:cron &>>$CRONLOG;date -Iseconds>>$CRONLOG"

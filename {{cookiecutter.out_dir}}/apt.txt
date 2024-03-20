@@ -62,6 +62,9 @@ php-dompdf
 # m4
 # make
 
+# extras
+imagemagick
+php-imagick
 # dev dependencies (after this line, all packages will be removed after build)
 # software-properties-common
 # apt-utils

@@ -1,6 +1,13 @@
-version: '3.7'
+version: '{{cookiecutter.compose_version}}'
+x-log: &log
+  depends_on: [log]
+  logging: {driver: syslog, options: {tag: '{{'{{'}}index .ContainerLabels "com.docker.compose.service"}}', syslog-address: "tcp://${SYSLOG_ADDRESS:-127.0.0.1}:${SYSLOG_PORT:-{{cookiecutter.syslog_port}}}"}}
+x-restart: &restart
+  restart: unless-stopped
 x-{{cookiecutter.app_type}}: &{{cookiecutter.app_type}}
   image: "${{'{'}}{{cookiecutter.app_type.upper()}}_IMAGE}:${{'{'}}{{cookiecutter.app_type.upper()}}_IMAGE_VERSION}"
+  volumes:
+  - logs:/logs
 {%-if not cookiecutter.remove_varnish%}
 x-varnish: &varnish
   image: "${VARNISH_IMAGE}:${VARNISH_IMAGE_VERSION}"
@@ -11,44 +18,43 @@ x-images:
     entrypoint: 'sh -c "while true;do echo notstarted;sleep 65000;done"'
     restart: "no"
 services:
+  log:
+    <<: [ *restart ]
+    volumes: [logs:/var/log]
+    ports: ["${SYSLOG_ADDRESS:-127.0.0.1}:${SYSLOG_PORT:-{{cookiecutter.syslog_port}}}:10514"]
   {%-if not cookiecutter.remove_varnish%}
   varnish:
-    <<: [ *varnish ]
-    restart: unless-stopped
+    <<: [ *varnish, *restart, *log ]
   {%-endif%}
   nginx:
-    restart: unless-stopped
+    <<: [ *restart, *log ]
     ports:
     - "${DRUPAL_HTTP_LISTEN:-0.0.0.0}:${DRUPAL_HTTP_PORT:-80}:80"
     - "${DRUPAL_HTTPS_LISTEN:-0.0.0.0}:${DRUPAL_HTTPS_PORT:-443}:443"
   {{cookiecutter.app_type}}:
-    restart: unless-stopped
-    <<: [ *{{cookiecutter.app_type}} ]
+    <<: [ *{{cookiecutter.app_type}}, *log ]
     ports:
     - "${DRUPAL_API_LISTEN:-127.0.0.1}:${DRUPAL_API_PORT:-9000}:9000"
 {%- if not cookiecutter.remove_cron %}
   cron:
-    <<: [ *{{cookiecutter.app_type}} ]
-    restart: unless-stopped
+    <<: [ *{{cookiecutter.app_type}}, *log ]
 {%- endif%}
   backup:
-    restart: unless-stopped
+    <<: [ *restart, *log ]
+    volumes:
+    - backupdb-dumps:/var/db_smart_backup/
   mailcatcher:
-    restart: unless-stopped
-{%-if cookiecutter.with_redis%}
-  redis:
-    restart: unless-stopped
+    <<: [ *restart, *log ]
+{%-if cookiecutter.cache_system%}
+  {{cookiecutter.cache_system}}:
+    <<: [ *restart, *log ]
 {%-endif%}
   db:
-    restart: unless-stopped
+    <<: [ *restart, *log ]
 {%- if cookiecutter.db_mode.startswith('post') %}
     environment:
       POSTGRES_MAX_CONNECTIONS: "${POSTGRES_MAX_CONNECTIONS:-100}"
 {%- endif %}
-{%- if cookiecutter.db_mode.startswith('post') %}
-  setup-postgres:
-    restart: unless-stopped
-{%- elif cookiecutter.db_mode.startswith('m') %}
-  setup-mysql:
-    restart: unless-stopped
-{%- endif %}
+volumes:
+  backupdb-dumps:
+  logs:

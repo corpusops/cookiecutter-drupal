@@ -1,5 +1,6 @@
 {%- set envs = ['dev', 'qa', 'staging', 'prod', 'preprod'] %}
 {%- set aenvs = [] %}{%- for i in envs %}{% if cookiecutter.get(i+'_host', '')%}{% set _ = aenvs.append(i) %}{%endif%}{%endfor%}
+{%- set refenv = aenvs|length > 1 and aenvs[-2] or aenvs[-1] %}
 # Initialize your development environment
 
 All following commands must be run only once at project installation.
@@ -36,13 +37,16 @@ git submodule update --recursive{%endif%}
 If your user is ``sudoer`` but is asking for you to input a password before elavating privileges,
 You will need to add ``--ask-become-pass`` (or in earlier ansible versions: ``--ask-sudo-pass``) and maybe ``--become`` to any of the following ``ansible alike`` commands.
 
-## Install docker and docker compose
-
-if you are under debian/ubuntu/mint/centos you can do the following:
-
+## Install corpusops
+If you want to use ansible, or ansible vault (see passwords) or install docker via automated script
 ```sh
 .ansible/scripts/download_corpusops.sh
 .ansible/scripts/setup_corpusops.sh
+```
+
+## Install docker and docker compose
+if you are under debian/ubuntu/mint/centos you can do the following:
+```sh
 local/*/bin/cops_apply_role --become \
     local/*/*/corpusops.roles/services_virt_docker/role.yml
 ```
@@ -51,8 +55,8 @@ local/*/bin/cops_apply_role --become \
   [docker](https://docs.docker.com/install/#releases) and
   [docker-compose](https://docs.docker.com/compose/install/).
 
-## Update corpusops
 
+## Update corpusops
 You may have to update corpusops time to time with
 
 ```sh
@@ -172,7 +176,6 @@ NO_STARTUP_LOG=
     ```sh
     ./control.sh usershell
     ```
-
 - for root shell
 
     ```sh
@@ -192,7 +195,7 @@ NO_STARTUP_LOG=
 ## Rebuild/Refresh local docker image in dev
 
 ```sh
-control.sh buildimages
+./control.sh buildimages
 ```
 
 ## Calling drush & console commands
@@ -239,7 +242,6 @@ docker volume rm $id
 ```
 
 ## Reusing a precached image in dev to accelerate rebuilds
-
 Once you have build once your image, you have two options to reuse your image as a base to future builds, mainly to accelerate buildout successive runs.
 
 - Solution1: Use the current image as an incremental build: Put in your .env
@@ -428,7 +430,7 @@ If you get the same problem with the {{cookiecutter.app_type}} docker env :
 
 ```bash
 docker-compose -f docker-compose.yml -f docker-compose-dev.yml stop {{cookiecutter.app_type}} db
-docker volume rm ICIUnNom-postgresql # check with docker volume ls
+docker volume rm {{cookiecutter.lname}}-postgresql # check with docker volume ls
 docker-compose -f docker-compose.yml -f docker-compose-dev.yml up -d db
 # wait for database stuff to be installed
 docker-compose -f docker-compose.yml -f docker-compose-dev.yml up {{cookiecutter.app_type}}
@@ -436,21 +438,22 @@ docker-compose -f docker-compose.yml -f docker-compose-dev.yml up {{cookiecutter
 
 ## Pipelines workflows tied to deploy environments and built docker images
 ### TL;DR
-- We use deploy branches where some git **branches** are dedicated to deploy related **gitlab**, **configuration managment tool's environments**, and **docker images tags**.<br/>
+- We use deploy branches where some git **branches** (main branch, tags, and environment related branches) are dedicated to deploy related **gitlab**, **configuration managment tool's environments**, and **docker images tags**.<br/>
 - You can use them to deliver to a specific environment either by:
     1. Not using promotion workflow and only pushing to this branch and waiting for the whole pipeline to complete the image build, and then deploy on the targeted env.
     2. Using tags promotion: "Docker Image Promotion is the process of promoting Docker Images between registries to ensure that only approved and verified images are used in the right environments, such as production."<br/>
-        - You **run or has run a successful pipeline with the code you want to deploy**, (surely ``{{cookiecutter.main_branch}}``).
-        - You can then **``promote`` its tag** to either **one or all** env(s) with the ``promote_*`` jobs and reuse the previously produced tag.<br/>
+        - You **run or has run a successful pipeline with the code you want to deploy**, (surely ``{{cookiecutter.main_branch}}`` or a specific Tag).
+        - You can then **``promote`` its related docker tag** to either **one or all** env(s) with the ``promote_*`` jobs and reuse the previously produced tag.<br/>
         - After the succesful promotion, you can then manually **deploy on the targeted env(s)**.
+        - TIP: The Promote & Deploy steps can be done at once using the `promote_and_deploy_*` jobs.
 
 ### Using promotion in practice
 - As an example, we are taking <br/>
-  &nbsp;&nbsp;&nbsp;&nbsp;the ``{{aenvs[-2]}}`` branch which is tied to <br/>
-  &nbsp;&nbsp;&nbsp;&nbsp;the {{aenvs[-2]}} **inventory ansible group**<br/>
-  &nbsp;&nbsp;&nbsp;&nbsp;and deliver the {{aenvs[-2]}} **docker image**<br/>
-  &nbsp;&nbsp;&nbsp;&nbsp;and associated resources on the **{{aenvs[-2]}} environment**.
-- First, run an entire pipeline on the branch (eg:``{{cookiecutter.main_branch}}``)  and the commit you want to deploy.<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;the ``{{refenv}}`` branch which is tied to <br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;the {{refenv}} **inventory ansible group**<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;and deliver the {{refenv}} **docker image**<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;and associated resources on the **{{refenv}} environment**.
+- First, run an entire pipeline on the branch (eg:``{{cookiecutter.main_branch}}``) and the commit you want to deploy.<br/>
   Please note that it can also be another branch like `stable` if `stable` branch was configured to produce the `stable` docker tags via the `TAGGUABLE_IMAGE_BRANCH` [`.gitlab-ci.yml`](./.gitlab-ci.yml) setting.
 - Push your commit to the desired related env branche(s) (remove the ones you won't deploy now) to track the commit you are deploying onto
 

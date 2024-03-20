@@ -1,0 +1,24 @@
+# use buildkit formatted dockerignore to support multiple dockerignore per same context
+# (legacy builder wont support this feature)
+#
+/docker*
+/app/vendor
+/app/var/private/*
+/app/var/public/*
+
+# composer default stuff to ignore during build
+/app/www/core
+/app/www/modules
+/app/www/example.gitignore
+/app/www/index.php
+/app/www/INSTALL.txt
+/app/www/libraries
+/app/www/README.txt
+/app/www/robots.txt
+/app/www/themes
+/app/www/update.php
+/app/www/web.config
+/local/*/Dockerfile*
+/local/**/*/Dockerfile*
+Dockerfile*
+

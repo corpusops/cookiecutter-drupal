@@ -1,4 +1,4 @@
-version: '3.7'
+version: '{{cookiecutter.compose_version}}'
 x-images:
   bypass: &bypass
     command: 'sh -c "while true;do echo notstarted;sleep 65000;done"'
@@ -19,21 +19,23 @@ x-images:
       # SDEBUG: "1"
       # NO_STARTUP_LOGS: ""
     volumes: &{{cookiecutter.app_type}}_volumes
+    - ./local/localdir:/local
+    - ./sys:/code/sys
     {%-if cookiecutter.use_submodule_for_deploy_code %}
+    - ./local/drupal-deploy-common/sys/sudoer:/etc/sudoers.d/${APP_TYPE:-drupal}
     - ./local/drupal-deploy-common/sys/init.sh:/code/init/init.sh
     - ./local/drupal-deploy-common:/code/local/drupal-deploy-common
     {%- else%}
     - ./sys/init.sh:/code/init/init.sh
     - ./:/code/local/drupal-deploy-common
     {%- endif%}
-    - ./sys:/code/sys
     - ./local:/code/local
     - ./app:{{cookiecutter.app_path}}
     # remount public/private (named volumes on prod, local remount on dev)
     # on /code/app/public/files and /code/app/private
     - ./app/var/public:{{cookiecutter.public_files_path}}/
     - ./app/var/private:{{cookiecutter.private_path}}/
-{% -if not cookiecutter.remove_doc%}
+{%- if not cookiecutter.remove_doc%}
     # host doc dir mounted inside container
     - ./app/var/docs:/code/app/var/docs
 {%-endif%}
@@ -41,13 +43,13 @@ x-images:
 services:
   db:
     ports:
-      - "${DRUPAL_DB_LISTEN:-127.0.0.1}:${DRUPAL_DB_PORT:-{{ cookiecutter.local_direct_db_port }}}:5432"
+    - "${DRUPAL_DB_LISTEN:-127.0.0.1}:${DRUPAL_DB_PORT:-{{ cookiecutter.local_direct_db_port }}}:5432"
 {%-if not cookiecutter.remove_varnish%}
   varnish:
     environment:
       DRUPAL_ENV_NAME: "${DRUPAL_ENV_NAME-dev}"
     volumes:
-      - ./local/drupal-deploy-common/sys/varnish.sh:/varnish.sh
+    - ./local/drupal-deploy-common/sys/varnish.sh:/varnish.sh
 {%-endif%}
   nginx:
     environment:
@@ -62,11 +64,11 @@ services:
     - "${DRUPAL_HTTP_LISTEN:-0.0.0.0}:${DRUPAL_HTTPS_PORT:-{{cookiecutter.local_https_port}}}:443"
 {%- endif %}
     volumes:
-      # remount public/private (named volumes on prod, local remount on dev)
-      # on /code/app/var/public (files) and /code/app/var/private
-      - ./app/www/:{{cookiecutter.public_path}}
-      - ./app/var/public:{{cookiecutter.public_files_path}}
-      - ./app/var/private:{{cookiecutter.private_path}}
+    # remount public/private (named volumes on prod, local remount on dev)
+    # on /code/app/var/public (files) and /code/app/var/private
+    - ./app/www/:{{cookiecutter.public_path}}
+    - ./app/var/public:{{cookiecutter.public_files_path}}
+    - ./app/var/private:{{cookiecutter.private_path}}
   backup: {<<: [ *bypass ]}
 {%- if not cookiecutter.remove_cron %}
   cron:
