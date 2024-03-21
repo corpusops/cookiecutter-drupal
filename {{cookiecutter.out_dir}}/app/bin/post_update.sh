@@ -34,15 +34,24 @@ else
 fi
 ask "$((QUESTION++))- Do you want to run a configuration import (drush cim)?"
 if [ "xok" = "x${USER_CHOICE}" ]; then
-    echo "${YELLOW}  - first we run drush -y cim --partial sync (to let drush cim update the config_ignore exception list before removing the partial option -- which prevents deletions)${NORMAL}"
-    call_drush ${FORCE} config:import --partial
-    echo "${YELLOW}  - And we run run it a second time, because.. Drupal${NORMAL}"
-    call_drush ${FORCE} config:import --partial
-    if [ "x${?}" = "x1" ]; then
-        bad_exit "Failure in the 'drush cim --partial' step (upgrade configuration), please check the previous lines for details."
+    if [ -e "$ROOTPATH/config/partial" ];then
+        echo "${YELLOW}  - first we update the config_ignore configuration file (which prevents unwanted deletions)${NORMAL}"
+        call_drush ${FORCE} config:import --partial --source='../config/partial'
+        if [ "x${?}" = "x1" ]; then
+            bad_exit "Failure in the 'config:import --partial --source='../config/partial', please check the previous lines for details."
+        fi
+    else
+        echo "${YELLOW}  - first we run drush -y cim --partial sync (to let drush cim update the config_ignore exception list before removing the partial option -- which prevents deletions)${NORMAL}"
+        call_drush ${FORCE} config:import --partial
+        echo "${YELLOW}  - And we run run it a second time, because.. Drupal${NORMAL}"
+        call_drush ${FORCE} config:import --partial
+
     fi
     echo "${YELLOW}  - And now we remove the --partial option, to perform deletions${NORMAL}"
     call_drush ${FORCE} config:import
+    if [ "x${?}" = "x1" ]; then
+        bad_exit "Failure in the 'drush cim --partial' step (upgrade configuration), please check the previous lines for details."
+    fi
     echo "${YELLOW}  - And we run run it a second time, because.. Drupal${NORMAL}"
     call_drush ${FORCE} config:import
     if [ "x${?}" = "x1" ]; then
