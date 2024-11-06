@@ -755,16 +755,16 @@ force_build_ci_images: &force_build_ci_images
 
 build_and_release: &build_and_release
   stage: release
-  dependencies: []
   rules: [ *skip_mr_trigger, *on_release_branches_main_tags_trigger, {when: never} ]
   <<: [ *compose_build, *ci_runner ]
   variables: &release_images_vars
     <<: [ *compose_build_vars ]
     DOCKER_BASE_IMAGE: $LATEST_CI_DOCKER_IMAGE
 
-force_build_and_release: &force_build_and_release
-  <<: [ *manual_job, *build_and_release]
-  rules: [ *skip_mr_trigger, *mon_release_branches_main_tags_trigger, {when: never} ]
+# can't be used as assets are generated thorought the pipeline and artifacts won't be available in this job
+# force_build_and_release: &force_build_and_release
+#   <<: [ *manual_job, *build_and_release]
+#   rules: [ *skip_mr_trigger, *mon_release_branches_main_tags_trigger, {when: never} ]
 
 # the job will catch any failure on build stage and create a file upon success or failure
 # the real goal is for teardown jobs in the next stage to run, in any cases

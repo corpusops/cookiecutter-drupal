@@ -7,10 +7,13 @@ All following commands must be run only once at project installation.
 
 # TL;DR;
 
-```sh
-git checkout
+```bash
+git clone --recursive {{cookiecutter.git_project_url}} # choose between ssh and http
+{%-if cookiecutter.use_submodule_for_deploy_code-%}
+cd {{cookiecutter.git_project}}
 git submodule init # only the fist time
 git submodule update --recursive
+{%-endif%}
 ./control.sh init
 ./control.sh build
 ./control.sh up
@@ -25,7 +28,7 @@ git submodule update --recursive
 
 ## First clone
 
-```sh
+```bash
 # check the remote protocol you may want to choose between http and ssh
 git clone --recursive {{cookiecutter.git_project_url}}
 {%if cookiecutter.use_submodule_for_deploy_code-%}git submodule init # only the fist time
@@ -39,14 +42,14 @@ You will need to add ``--ask-become-pass`` (or in earlier ansible versions: ``--
 
 ## Install corpusops
 If you want to use ansible, or ansible vault (see passwords) or install docker via automated script
-```sh
+```bash
 .ansible/scripts/download_corpusops.sh
 .ansible/scripts/setup_corpusops.sh
 ```
 
 ## Install docker and docker compose
 if you are under debian/ubuntu/mint/centos you can do the following:
-```sh
+```bash
 local/*/bin/cops_apply_role --become \
     local/*/*/corpusops.roles/services_virt_docker/role.yml
 ```
@@ -59,7 +62,7 @@ local/*/bin/cops_apply_role --become \
 ## Update corpusops
 You may have to update corpusops time to time with
 
-```sh
+```bash
 ./control.sh up_corpusops
 ```
 
@@ -94,7 +97,7 @@ docker login {{cookiecutter.docker_registry}}  # use your gitlab user
 
 Never forget to grab and update regulary the project submodules:
 
-```sh
+```bash
 git pull{% if cookiecutter.use_submodule_for_deploy_code
 %}
 git submodule init # only the fist time
@@ -137,7 +140,7 @@ The project should be reached in http://{{cookiecutter.local_domain}}:{{cookiecu
 
 If you launch a `up` action on dev local environement the application is not yet installed. Shared directories with your local installation, containing things like the *vendors*, are empty, and the database may also be empty. A first test may needs commands like these ones :
 
-```sh
+```bash
 ./control.sh up
 ./control.sh userexec bin/composerinstall
 ./control.sh userexec bin/install.sh
@@ -153,7 +156,7 @@ If you launch a `up` action on dev local environement the application is not yet
 
 You may need to check for problems by listing containers and checking logs with
 
-```sh
+```bash
 ./control.sh ps
 # here finding a line like this one:
 foobar_{{cookiecutter.app_type}}_1_4a022a7c19bd              /bin/sh -c dockerize -wait ...   Exit 1
@@ -164,7 +167,7 @@ docker logs -f foobar_{{cookiecutter.app_type}}_1_4a022a7c19bd
 
 In case of problems in the init.sh script of the {{cookiecutter.app_type}} container you can add some debug by adding a SDEBUG key in the env of the container, you can have even more details by adding an empty NO_STARTUP_LOG env. So, for example, edit your `docker.env` script and add:
 
-```sh
+```bash
 SDEBUG=1
 NO_STARTUP_LOG=
 ```
@@ -173,12 +176,12 @@ NO_STARTUP_LOG=
 
 - for user shell
 
-    ```sh
+    ```bash
     ./control.sh usershell
     ```
 - for root shell
 
-    ```sh
+    ```bash
     ./control.sh shell
     ```
 
@@ -188,19 +191,19 @@ NO_STARTUP_LOG=
 
 - Please remember that the ``CONTROL_COMPOSE_FILES`` env var controls which docker-compose configs are use (list of space separated files), by default it uses the dev set.
 
-    ```sh
+    ```bash
     ./control.sh dcompose <ARGS>
     ```
 
 ## Rebuild/Refresh local docker image in dev
 
-```sh
+```bash
 ./control.sh buildimages
 ```
 
 ## Calling drush & console commands
 
-```sh
+```bash
 ./control.sh console [options]
 ./control.sh drupal [options]
 ./control.sh drush [options]
@@ -214,7 +217,7 @@ NO_STARTUP_LOG=
 
 ## Run tests
 
-```sh
+```bash
 ./control.sh tests
 # also consider: linting|coverage
 ```
@@ -227,7 +230,7 @@ If you get annoying file permissions problems on your host in development, you c
 user to use files in your working directory
 
 
-```sh
+```bash
 ./control.sh open_perms_valve
 ```
 
@@ -236,7 +239,7 @@ user to use files in your working directory
 Your application extensivly use docker volumes. From times to times you may
 need to erase them (eg: burn the db to start from fresh)
 
-```sh
+```bash
 docker volume ls  # hint: |grep \$app
 docker volume rm $id
 ```
@@ -246,15 +249,16 @@ Once you have build once your image, you have two options to reuse your image as
 
 - Solution1: Use the current image as an incremental build: Put in your .env
 
-    ```sh
+    ```bash
     {{cookiecutter.app_type.upper()}}_BASE_IMAGE={{ cookiecutter.docker_image }}:latest-dev
     ```
 
 - Solution2: Use a specific tag: Put in your .env
 
-    ```sh
+    ```bash
     {{cookiecutter.app_type.upper()}}_BASE_IMAGE=a tag
     # this <a_tag> will be done after issuing: docker tag registry.makina-corpus.net/mirabell/chanel:latest-dev a_tag
+    # this <a_tag> will be done after issuing: docker tag {{ cookiecutter.docker_image }}:latest-dev a_tag
     ```
 
 ## Integrating an IDE
@@ -262,7 +266,7 @@ Once you have build once your image, you have two options to reuse your image as
 
 ### Using VSCode
 
-Adding this to ``.vscode/settings.json`` would help to give you a smooth editing experience
+Adding this to ``.vscode/settings.json`` would help to give you a smooth editing experience.
 
 ```json
 {
@@ -457,7 +461,7 @@ docker-compose -f docker-compose.yml -f docker-compose-dev.yml up {{cookiecutter
   Please note that it can also be another branch like `stable` if `stable` branch was configured to produce the `stable` docker tags via the `TAGGUABLE_IMAGE_BRANCH` [`.gitlab-ci.yml`](./.gitlab-ci.yml) setting.
 - Push your commit to the desired related env branche(s) (remove the ones you won't deploy now) to track the commit you are deploying onto
 
-    ```sh
+    ```bash
     # on local main branch
     git fetch --all
     git reset --hard origin/{{cookiecutter.main_branch}}
@@ -468,8 +472,10 @@ docker-compose -f docker-compose.yml -f docker-compose-dev.yml up {{cookiecutter
        Click on the ``canceled/running`` button link which links the pipeline details), <br/>
        It will lead to a jobs dashboard which is really appropriated to complete next steps.<br/>
        Either run:
-        - ``promote_all_envs``: promote all deploy branches with the selected ``FROM_PROMOTE`` tag (see just below).
-        - ``promote_single_env``: promote only this env with the selected ``FROM_PROMOTE`` tag (see just below).
+        - one of the `promote_and_deploy_*` available on the main branch (``{{cookiecutter.main_branch}}``), Tags, Or the deploy branch related to the deployed environment.
+        - or
+            - ``promote_all_envs``: promote all deploy branches with the selected ``FROM_PROMOTE`` tag (see just below).
+            - ``promote_single_env``: promote only this env with the selected ``FROM_PROMOTE`` tag (see just below).
         - Indeed, **in both jobs**, you can override the default promoted tag which is ``latest`` with the help of that ``FROM_PROMOTE`` pipeline/environment variable.<br/>
           This can help in those following cases:
             - If you want `production` to be deployed with the `dev` image, you can then set `FROM_PROMOTE=dev`.
@@ -480,11 +486,11 @@ docker-compose -f docker-compose.yml -f docker-compose-dev.yml up {{cookiecutter
 # Teleport (load one env from one another)
 init your vault (see [`docs/deploy.md`](./docs/README.md#docs#generate-vault-password-file)).
 
-```sh
+```bash
 CORPUSOPS_VAULT_PASSWORD="xxx" .ansible/scripts/setup_vaults.sh
 ```
 
-```sh
+```bash
 # Generate SSH deploy key locally for ansible to work and dump
 # the ssh key contained in inventory in a place suitable
 # by ssh client (ansible)
@@ -494,21 +500,21 @@ CORPUSOPS_VAULT_PASSWORD="xxx" .ansible/scripts/setup_vaults.sh
 ## Load a staging/prod database on another env
 controller is localhost, the box where you run the playbook, so your laptop, but can be any configured ansible host.
 
-```sh
+```bash
 .ansible/scripts/call_ansible.sh -vvvv .ansible/playbooks/teleport.yml \
 -e "{teleport_destination: controller, teleport_origin: prod, teleport_debug: true}"
 ```
 
 Think to look after the site homepage to see if it's avalaible, and in case it's on a 503 error or else, but the teleport did not failed, reboot the stack
 
-```sh
+```bash
 ./control.sh down
 ./control.sh up
 ```
 
 If your CSS styles are broken, rebuild them and flush drupal cache
 
-```sh
+```bash
 npm install && npm ci
 # or
 yarn install && yarn build
