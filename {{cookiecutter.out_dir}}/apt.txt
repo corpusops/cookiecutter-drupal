@@ -47,6 +47,10 @@ php{{cookiecutter.php_ver}}-zip
 php-pear
 php-dompdf
 
+# extras
+imagemagick
+php-imagick
+
 # dev deps are there but as in drupal in dev mode we need those tools to run composer, we cant strip them from the final image
 # autoconf
 # automake
@@ -62,9 +66,5 @@ php-dompdf
 # m4
 # make
 
-# extras
-imagemagick
-php-imagick
-# dev dependencies (after this line, all packages will be removed after build)
 # software-properties-common
 # apt-utils
