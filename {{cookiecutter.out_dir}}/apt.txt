@@ -65,6 +65,6 @@ php-imagick
 # llvm-10-dev
 # m4
 # make
-
+#  dev dependencies (after this line, all packages will be removed after build)
 # software-properties-common
 # apt-utils
