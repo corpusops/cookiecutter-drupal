@@ -4,6 +4,7 @@ ca-certificates
 curl
 gettext
 git
+iproute2
 libxslt1.1
 logrotate
 openssl

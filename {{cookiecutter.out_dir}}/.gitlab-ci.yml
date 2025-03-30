@@ -223,7 +223,7 @@ before_script: &top_before_script
        fi
        ln -sfv "$o" "$d"
      done
-   } 
+   }
    # see https://github.com/moby/buildkit/issues/1896: swap cache folder upon new image creation to avoid eternaly growing cache
    swap_cache_folder() {
      for i in $@;do log "swap docker cache_folder: $i"
@@ -390,6 +390,7 @@ cleanup_all: &cleanup_all
       && log "Using buildkit to build $cimg :-: $dcexport" \
       && vv bx_dc ${service} $@; ); }
     vv dcompose_bx_build {{cookiecutter.app_type}} dev  ${COMPOSE_DEV_CONFIGS}
+    vv dcompose_bx_build {{cookiecutter.app_type}} prod ${COMPOSE_PROD_CONFIGS}
 {%- if not cookiecutter.remove_varnish %}
 {%- endif%}
     vv dcompose_bx_build {{cookiecutter.app_type}} prod ${COMPOSE_PROD_CONFIGS}
@@ -439,7 +440,7 @@ cleanup_all: &cleanup_all
 {{docscomment}}  image: "${LATEST_CI_DOCKER_IMAGE}-docsbuilder"
 {{docscomment}}  artifacts: {name: docs, expire_in: "1 week", paths: ["{{'", "'.join(cookiecutter.docs_folders.split())}}"]}
 {{docscomment}}  script:
-{{docscomment}}  - export SOURCEDIR="$(pwd)/docs" BUILDDIR="$(pwd)/docs/_build"
+{{docscomment}}  - export SOURCEDIR="$(pwd)/docs" BUILDDIR="$(pwd)/app/var/docs"
 {{docscomment}}  - NO_INSTALL="" /code/docs/entry.sh install_tools
 {{docscomment}}  - /code/docs/entry.sh build_doc
 {{frontcomment}}# BUILTIN Js APP support
@@ -713,6 +714,7 @@ force_build_ci_images: &force_build_ci_images
     # code is on the services entrypoints to upstream the hosts block to their relative /etc/hosts
     if ( grep -q "\snginx" /etc/hosts );then echo "$(grep "\snginx" /etc/hosts|awk '{print $1}') $NGINX_SERVERNAME" >>/etc/hosts;fi
     grep -E "^[^#].*\s($NGINX_SERVERNAME|db|mysql|cache|redis|varnish|nginx|celery|memcach|cron|mailcatcher)" /etc/hosts >> "${COMMON_HOSTS_FILE}.tmp"
+    if ! ( ip a &>/dev/null );then if (apt-get --version >/dev/null 2>&1);then apt update -yqq && apt-get install -y iproute2;fi;fi
     export {{cookiecutter.app_type.upper()}}_IP="${FORCED_{{cookiecutter.app_type.upper()}}_IP:-$(ip -4 r get 8.8.8.8|grep src|awk '{print $7}')}"
     echo "${{cookiecutter.app_type.upper()}}_IP cron {{cookiecutter.app_type}}" >> "${COMMON_HOSTS_FILE}.tmp"
     mv "${COMMON_HOSTS_FILE}.tmp" "${COMMON_HOSTS_FILE}"
@@ -725,7 +727,7 @@ force_build_ci_images: &force_build_ci_images
     chown -Rf $SHELL_USER $CI_PROJECT_DIR
     cd $SRC_DIR
   - &composerinstall set -e && cd $SRC_DIR && SHELL_USER=$(whoami) bin/composerinstall --no-scripts && touch "${COMPOSER_INSTALLED_FILE}"
-  - &appmigrate cd $SRC_DIR && NO_STARTUP_LOGS= NO_COLLECT_STATIC= NO_INSTALL= DRUPAL_FORCE_INSTALL=1 ../init/init.sh bin/install.sh
+  - &appmigrate cd $SRC_DIR && SHELL_USER=root NO_STARTUP_LOGS= NO_COLLECT_STATIC= NO_INSTALL= DRUPAL_FORCE_INSTALL=1 ../init/init.sh bin/install.sh
 {%- set testsc = (not cookiecutter.test_tests) and '#' or '' %}
 {%- set testscov = (not cookiecutter.test_coverage) and '# ' or '' %}
 {{testsc}}tests: &tests
@@ -802,6 +804,10 @@ teardown_workspace: &teardown_workspace
 manual_teardown_workspace:
   <<: [ *manual_job, *teardown_workspace ]
 
+.delivery_playbook: &delivery_playbook
+  variables: &delivery_playbook_variables
+    DEPLOY_PLAYBOOK: .ansible/playbooks/delivery.yml
+
 .deploy: &deploy
   <<: [ *ci_runner ]
   dependencies: []
@@ -820,7 +826,7 @@ manual_teardown_workspace:
   before_script:
   - &deploy_setup_vars |-
       set -e
-      if [ "x${CI_COMMIT_REF_NAME}" = "x${MAIN_BRANCH}" ] && ( echo  "${CI_JOB_NAME}" | grep -q "deploy_dev$" );then export A_ENV_NAME="dev";fi
+      if [ "x${CI_COMMIT_REF_NAME}" = "x${MAIN_BRANCH}" ] && ( echo "${CI_JOB_NAME}" | grep -q "deploy_dev$" );then export A_ENV_NAME="dev";fi
       export A_ENV_NAME=$(eval echo ${A_ENV_NAME})
       if [ "x${A_ENV_NAME}" = x ];then echo "\$A_ENV_NAME is not set, bailing out" >&2 ;exit 1;fi
       export DEPLOYED_BRANCH=$(eval echo ${DEPLOYED_BRANCH})
@@ -842,11 +848,9 @@ manual_teardown_workspace:
 .deploy_{{i}}: &deploy_{{i}}
   <<: [ *deploy_{{i}}_rules, *deploy ]
   variables: &deploy_{{i}}_vars
-    <<: [ *deploy_vars ]
+    <<: [ {%- if i in ['prod'] %}*delivery_playbook_variables, {%- endif %}*deploy_vars ]
     A_ENV_NAME: {{i}}
-{%- if i in ['prod'] %}
-    DEPLOY_PLAYBOOK: .ansible/playbooks/delivery.yml
-{%- endif %}
+
 {%- if i in ['dev'] %}
   when: "on_success"
 {%- endif %}
@@ -951,7 +955,7 @@ promote_single_env: &promote_single_env
 manual_promote_and_deploy_{{i}}: &promote_and_deploy_{{i}}
   <<: [ *promote_and_deploy, *promote, *manual_deploy_{{i}} ]
   variables: &promote_and_deploy_{{i}}_vars
-    <<: [ *promote_and_deploy_vars, *deploy_{{i}}_vars ]
+    <<: [ {%- if i in ['prod'] %}*delivery_playbook_variables, {%- endif %}*promote_and_deploy_vars, *deploy_{{i}}_vars ]
     TO_PROMOTE: "{{i}}"
 promote_and_deploy_{{i}}: { <<: [ *promote_and_deploy_{{i}} ], stage: post_release }
 {% endfor %}
